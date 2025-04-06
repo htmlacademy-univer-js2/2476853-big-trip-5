@@ -1,8 +1,10 @@
-import {createElement} from '../render';
 import {formatDate, getDuration} from '../utils/date';
+import AbstractView from '../framework/view/abstract-view';
 
-const eventItemTemplate = (event, offersList) => {
+const eventItemTemplate = (event, offersList, destinations) => {
   const {price, dateFrom, dateTo, cityDestination, isFavorite, offers, type} = event;
+  const eventTypeOffers = offersList.find((offer) => offer.type === type);
+  const destination = destinations.find((item) => item.id === cityDestination);
 
   return `<li class="trip-events__item">
               <div class="event">
@@ -10,7 +12,7 @@ const eventItemTemplate = (event, offersList) => {
                 <div class="event__type">
                   <img class="event__type-icon" width="42" height="42" src="img/icons/${type}.png" alt="Event type icon">
                 </div>
-                <h3 class="event__title">${type} ${cityDestination.name}</h3>
+                <h3 class="event__title">${type} ${destination.name}</h3>
                 <div class="event__schedule">
                   <p class="event__time">
                     <time class="event__start-time" datetime="2019-03-18T10:30">${formatDate(dateFrom)}</time>
@@ -24,14 +26,12 @@ const eventItemTemplate = (event, offersList) => {
                 </p>
                 <h4 class="visually-hidden">Offers:</h4>
                 <ul class="event__selected-offers">
-                  ${offersList.offers.map((offer) => {
-    if (offers.includes(offer.id)) {
-      return (`<li class="event__offer">
-        <span class="event__offer-title">${offer.title}</span>
-        &plus;&euro;&nbsp;
-        <span class="event__offer-price">${offer.price}</span>
-        </li>`);
-    }
+                  ${eventTypeOffers.offers.map((offer) => {
+    return (`<li class="event__offer">
+                 <span class="event__offer-title">${offer.title}</span>
+                 &plus;&euro;&nbsp;
+                 <span class="event__offer-price">${offer.price}</span>
+                 </li>`);
   }).join('')}
                 </ul>
                 <button class="event__favorite-btn ${isFavorite ? 'event__favorite-btn--active' : ''}" type="button">
@@ -47,25 +47,24 @@ const eventItemTemplate = (event, offersList) => {
             </li>`;
 };
 
-class EventItem {
-  constructor({event, offers}) {
-    this.event = event;
-    this.offers = offers;
+class EventItem extends AbstractView {
+  #event = null;
+  #offers = null;
+  #destinations = null;
+  #onEditButtonClick = null;
+
+  constructor({event, offers, destinations, onEditButtonClick}) {
+    super();
+    this.#event = event;
+    this.#offers = offers;
+    this.#destinations = destinations;
+    this.#onEditButtonClick = onEditButtonClick;
+
+    this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#onEditButtonClick);
   }
 
-  getTemplate() {
-    return eventItemTemplate(this.event, this.offers);
-  }
-
-  getElement() {
-    if (!this.element) {
-      this.element = createElement(this.getTemplate());
-    }
-    return this.element;
-  }
-
-  removeElement() {
-    this.element = null;
+  get template() {
+    return eventItemTemplate(this.#event, this.#offers, this.#destinations);
   }
 }
 

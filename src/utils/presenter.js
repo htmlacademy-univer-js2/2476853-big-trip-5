@@ -1,35 +1,75 @@
-import {render} from '../render';
+/* eslint-disable no-use-before-define */
 import EventList from '../view/event-list';
 import Filters from '../view/filters';
 import EventItem from '../view/event-item';
 import Sort from '../view/sort';
 import EditForm from '../view/edit-form';
-import CreateForm from '../view/create-form';
+import {render, replace} from '../framework/render';
 
 class Presenter {
-  eventListComponent = new EventList();
+  #eventListComponent = new EventList();
+  #eventsContainer = null;
+  #filterContainer = null;
+  #eventModel = null;
 
   constructor(eventsContainer, filterContainer, eventModel) {
-    this.eventsContainer = eventsContainer;
-    this.filterContainer = filterContainer;
-    this.eventModel = eventModel;
+    this.#eventsContainer = eventsContainer;
+    this.#filterContainer = filterContainer;
+    this.#eventModel = eventModel;
   }
 
   init() {
-    this.events = [...this.eventModel.getEvents()];
-    this.offers = [...this.eventModel.getOffers()];
+    this.events = [...this.#eventModel.events];
+    this.offers = [...this.#eventModel.offers];
+    this.destinations = [...this.#eventModel.destinations];
 
-    render(new Filters(), this.filterContainer);
-    render(new Sort(), this.eventsContainer);
-    render(this.eventListComponent, this.eventsContainer);
-    render(new EditForm({event: this.events[0], offers: this.offers}), this.eventListComponent.getElement());
+    render(new Filters(), this.#filterContainer);
+    render(new Sort(), this.#eventsContainer);
+    render(this.#eventListComponent, this.#eventsContainer);
 
     for (const element of this.events) {
-      const eventOffers = this.offers.find((offer) => offer.type === element.type);
-      render(new EventItem({event: element, offers: eventOffers}), this.eventListComponent.getElement());
+      this.#renderItem(element);
     }
+  }
 
-    render(new CreateForm(), this.eventListComponent.getElement());
+  #renderItem(point) {
+    const onKeydown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        switchToEvent();
+        document.removeEventListener('keydown', onKeydown);
+      }
+    };
+
+    const eventComponent = new EventItem({
+      event: point,
+      offers: this.offers,
+      destinations: this.destinations,
+      onEditButtonClick: () => {
+        switchToForm();
+        document.addEventListener('keydown', onKeydown);
+      }
+    });
+
+    const editFormComponent = new EditForm({
+      event: point,
+      offers: this.offers,
+      destinations: this.destinations,
+      onSubmit: () => {
+        switchToEvent();
+        document.removeEventListener('keydown', onKeydown);
+      },
+      onReset: () => {
+        switchToEvent();
+        document.removeEventListener('keydown', onKeydown);
+      }
+    });
+
+    const switchToForm = () => replace(editFormComponent, eventComponent);
+
+    const switchToEvent = () => replace(eventComponent, editFormComponent);
+
+    render(eventComponent, this.#eventListComponent.element);
   }
 }
 
