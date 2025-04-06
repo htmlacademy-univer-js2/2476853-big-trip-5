@@ -9,19 +9,24 @@ import CreateForm from '../view/create-form';
 class Presenter {
   eventListComponent = new EventList();
 
-  constructor() {
-    this.eventsContainer = document.querySelector('.trip-events');
-    this.filterContainer = document.querySelector('.trip-controls__filters');
+  constructor(eventsContainer, filterContainer, eventModel) {
+    this.eventsContainer = eventsContainer;
+    this.filterContainer = filterContainer;
+    this.eventModel = eventModel;
   }
 
   init() {
+    this.events = [...this.eventModel.getEvents()];
+    this.offers = [...this.eventModel.getOffers()];
+
     render(new Filters(), this.filterContainer);
     render(new Sort(), this.eventsContainer);
     render(this.eventListComponent, this.eventsContainer);
-    render(new EditForm(), this.eventListComponent.getElement());
+    render(new EditForm({event: this.events[0], offers: this.offers}), this.eventListComponent.getElement());
 
-    for (let i = 0; i < 3; i++) {
-      render(new EventItem(), this.eventListComponent.getElement());
+    for (const element of this.events) {
+      const eventOffers = this.offers.find((offer) => offer.type === element.type);
+      render(new EventItem({event: element, offers: eventOffers}), this.eventListComponent.getElement());
     }
 
     render(new CreateForm(), this.eventListComponent.getElement());
