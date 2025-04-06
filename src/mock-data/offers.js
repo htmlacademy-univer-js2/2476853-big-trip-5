@@ -1,5 +1,5 @@
 import {getRandomNumber} from '../utils/random';
-import {POINT_TYPES} from "../const-values";
+import {POINT_TYPES} from '../const-values';
 
 const createOffer = (id) => ({
   id: id,

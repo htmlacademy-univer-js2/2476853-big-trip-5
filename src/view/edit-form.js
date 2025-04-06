@@ -1,10 +1,12 @@
-import {createElement} from '../render';
 import {POINT_TYPES} from '../const-values';
 import {formatDate} from '../utils/date';
+import AbstractView from '../framework/view/abstract-view';
 
-const editFormTemplate = (event, offersList) => {
+const editFormTemplate = (event, offersList, destinations) => {
   const {price, dateFrom, dateTo, cityDestination, offers, type} = event;
   const eventTypeOffers = offersList.find((offer) => offer.type === type);
+  const destination = destinations.find((item) => item.id === cityDestination);
+  const destinationsToOptions = destinations.map((item) => `<option value="${item.name}"></option>`).join('');
 
   return `<li class="trip-events__item">
               <form class="event event--edit" action="#" method="post">
@@ -30,13 +32,9 @@ const editFormTemplate = (event, offersList) => {
                     <label class="event__label  event__type-output" for="event-destination-1">
                       ${type}
                     </label>
-                    <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${cityDestination.name}" list="destination-list-1">
+                    <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${destination.name}" list="destination-list-1">
                     <datalist id="destination-list-1">
-                      <option value="Moscow"></option>
-                      <option value="Berlin"></option>
-                      <option value="Paris"></option>
-                      <option value="Stockholm"></option>
-                      <option value="London"></option>
+                      ${destinationsToOptions}
                     </datalist>
                   </div>
 
@@ -78,10 +76,10 @@ const editFormTemplate = (event, offersList) => {
                   </section>
                   <section class="event__section  event__section--destination">
                     <h3 class="event__section-title  event__section-title--destination">Destination</h3>
-                    <p class="event__destination-description">${cityDestination.description}</p>
+                    <p class="event__destination-description">${destination.description}</p>
                     <div class="event__photos-container">
                       <div class="event__photos-tape">
-                        ${cityDestination.pictures.map((image) => `<img class="event__photo" src="${image.src}" alt="${image.description}">`).join('')}
+                        ${destination.pictures.map((image) => `<img class="event__photo" src="${image.src}" alt="${image.description}">`).join('')}
                       </div>
                     </div>
                   </section>
@@ -90,25 +88,31 @@ const editFormTemplate = (event, offersList) => {
             </li>`;
 };
 
-class EditForm {
-  constructor({event, offers}) {
-    this.event = event;
-    this.offers = offers;
+class EditForm extends AbstractView {
+  #event = null;
+  #offers = null;
+  #destinations = null;
+  #onSubmit = null;
+  #onReset = null;
+
+  constructor({event, offers, destinations, onSubmit, onReset}) {
+    super();
+    this.#event = event;
+    this.#offers = offers;
+    this.#destinations = destinations;
+    this.#onSubmit = onSubmit;
+    this.#onReset = onReset;
+
+    this.element.querySelector('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.#onSubmit();
+    });
+    this.element.querySelector('form').addEventListener('reset', this.#onReset);
+    this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#onReset);
   }
 
-  getTemplate() {
-    return editFormTemplate(this.event, this.offers);
-  }
-
-  getElement() {
-    if (!this.element) {
-      this.element = createElement(this.getTemplate());
-    }
-    return this.element;
-  }
-
-  removeElement() {
-    this.element = null;
+  get template() {
+    return editFormTemplate(this.#event, this.#offers, this.#destinations);
   }
 }
 

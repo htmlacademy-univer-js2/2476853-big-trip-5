@@ -1,4 +1,4 @@
-import {createElement} from '../render';
+import AbstractView from '../framework/view/abstract-view';
 
 const filtersTemplate = `<form class="trip-filters" action="#" method="get">
                 <div class="trip-filters__filter">
@@ -24,20 +24,9 @@ const filtersTemplate = `<form class="trip-filters" action="#" method="get">
                 <button class="visually-hidden" type="submit">Accept filter</button>
               </form>`;
 
-class Filters {
-  getTemplate() {
+class Filters extends AbstractView {
+  get template() {
     return filtersTemplate;
-  }
-
-  getElement() {
-    if (!this.element) {
-      this.element = createElement(this.getTemplate());
-    }
-    return this.element;
-  }
-
-  removeElement() {
-    this.element = null;
   }
 }
 
