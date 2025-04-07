@@ -5,8 +5,9 @@ import EventItem from '../view/event-item';
 import Sort from '../view/sort';
 import EditForm from '../view/edit-form';
 import {render, replace} from '../framework/render';
+import EmptyEventList from "../view/empty-event-list";
 
-class Presenter {
+class MainPresenter {
   #eventListComponent = new EventList();
   #eventsContainer = null;
   #filterContainer = null;
@@ -23,7 +24,13 @@ class Presenter {
     this.offers = [...this.#eventModel.offers];
     this.destinations = [...this.#eventModel.destinations];
 
-    render(new Filters(), this.#filterContainer);
+    render(new Filters({events: this.events}), this.#filterContainer);
+
+    if (this.events.length === 0) {
+      render(new EmptyEventList(), this.#eventsContainer);
+      return;
+    }
+
     render(new Sort(), this.#eventsContainer);
     render(this.#eventListComponent, this.#eventsContainer);
 
@@ -73,4 +80,4 @@ class Presenter {
   }
 }
 
-export default Presenter;
+export default MainPresenter;
