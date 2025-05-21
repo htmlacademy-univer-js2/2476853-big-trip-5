@@ -1,6 +1,6 @@
 import EventItem from '../view/event-item';
 import EditForm from '../view/edit-form';
-import {render, replace} from '../framework/render';
+import {remove, render, replace} from '../framework/render';
 
 const STATE = {
   DEFAULT: 'DEFAULT',
@@ -100,5 +100,13 @@ export default class EventPresenter {
   updateEvent(updatedEvent) {
     this.#event = updatedEvent;
     this.init();
+  }
+
+  destroy() {
+    if (this.#state === STATE.EDIT) {
+      document.removeEventListener('keydown', this.#escKeyDownHandler);
+    }
+    remove(this.#eventComponent);
+    remove(this.#editComponent);
   }
 }

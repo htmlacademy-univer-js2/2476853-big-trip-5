@@ -24,6 +24,19 @@ const sortTemplate = `<form class="trip-events__trip-sort  trip-sort" action="#"
 </form> `;
 
 class Sort extends AbstractView {
+  constructor({onSortTypeChange} = {}) {
+    super();
+    this._callback = onSortTypeChange;
+    this.element.addEventListener('change', this.#sortTypeChangeHandler);
+  }
+
+  #sortTypeChangeHandler = (evt) => {
+    if (evt.target.tagName !== 'INPUT' || evt.target.disabled) {
+      return;
+    }
+    this._callback(evt.target.value);
+  };
+
   get template() {
     return sortTemplate;
   }
