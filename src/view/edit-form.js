@@ -1,6 +1,6 @@
 import {DATE_TYPE, POINT_TYPES} from '../const-values';
 import {formatDate} from '../utils/date';
-import AbstractView from '../framework/view/abstract-view';
+import AbstractStatefulView from '../framework/view/abstract-stateful-view';
 
 const editFormTemplate = (event, offersList, destinations) => {
   const {price, dateFrom, dateTo, cityDestination, offers, type} = event;
@@ -88,32 +88,79 @@ const editFormTemplate = (event, offersList, destinations) => {
             </li>`;
 };
 
-class EditForm extends AbstractView {
-  #event = null;
+class EditForm extends AbstractStatefulView {
   #offers = null;
   #destinations = null;
   #onSubmit = null;
   #onReset = null;
+  #originalState = null;
 
   constructor({event, offers, destinations, onSubmit, onReset}) {
     super();
-    this.#event = event;
+    this._setState(event);
+    this.#originalState = structuredClone(event);
     this.#offers = offers;
     this.#destinations = destinations;
     this.#onSubmit = onSubmit;
     this.#onReset = onReset;
-
-    this.element.querySelector('form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.#onSubmit();
-    });
-    this.element.querySelector('form').addEventListener('reset', this.#onReset);
-    this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#onReset);
+    this._restoreHandlers();
   }
 
   get template() {
-    return editFormTemplate(this.#event, this.#offers, this.#destinations);
+    return editFormTemplate(this._state, this.#offers, this.#destinations);
   }
+
+  _restoreHandlers() {
+    const form = this.element.querySelector('form');
+    form.addEventListener('submit', this.#submitHandler);
+    form.addEventListener('reset', this.#resetHandler);
+    this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#resetHandler);
+    this.element.querySelectorAll('input[name="event-type"]').forEach((input) => {
+      input.addEventListener('change', this.#typeChangeHandler);
+    });
+    this.element.querySelector('.event__input--destination').addEventListener('change', this.#destinationChangeHandler);
+    this.element.querySelectorAll('.event__offer-checkbox').forEach((input) => {
+      input.addEventListener('change', this.#offersChangeHandler);
+    });
+  }
+
+  #submitHandler = (e) => {
+    e.preventDefault();
+    this.#onSubmit(this._state);
+  };
+
+  #resetHandler = (e) => {
+    e.preventDefault();
+    this.updateElement(this.#originalState);
+    this.#onReset();
+  };
+
+  #typeChangeHandler = (e) => {
+    const newType = e.target.value;
+    this.updateElement({type: newType, offers: []});
+  };
+
+  #destinationChangeHandler = (e) => {
+    const newName = e.target.value;
+    const dest = this.#destinations.find((d) => d.name === newName);
+    if (dest) {
+      this.updateElement({cityDestination: dest.id});
+    }
+  };
+
+  #offersChangeHandler = (e) => {
+    const offerId = parseInt(e.target.id.split('-').pop(), 10);
+    const currentOffers = [...this._state.offers];
+    if (e.target.checked) {
+      currentOffers.push(offerId);
+    } else {
+      const index = currentOffers.indexOf(offerId);
+      if (index > -1) {
+        currentOffers.splice(index, 1);
+      }
+    }
+    this.updateElement({offers: currentOffers});
+  };
 }
 
 export default EditForm;
