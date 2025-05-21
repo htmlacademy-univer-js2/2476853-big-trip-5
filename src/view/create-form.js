@@ -1,6 +1,5 @@
 import AbstractView from '../framework/view/abstract-view';
-import {POINT_TYPES} from "../const-values";
-import {t} from "@babel/core/lib/vendor/import-meta-resolve";
+import {POINT_TYPES} from '../const-values';
 
 const createFormTemplate = (offers, destinations) => {
   const eventTypesList = POINT_TYPES.map((type) => (`
@@ -90,7 +89,7 @@ const createFormTemplate = (offers, destinations) => {
        </form>
      </li>`
   );
-}
+};
 
 class CreateForm extends AbstractView {
   #offers = null;

@@ -1,14 +1,13 @@
-/* eslint-disable no-use-before-define */
 import EventList from '../view/event-list';
 import Filters from '../view/filters';
-import EventItem from '../view/event-item';
 import Sort from '../view/sort';
-import EditForm from '../view/edit-form';
-import {render, replace} from '../framework/render';
-import EmptyEventList from "../view/empty-event-list";
+import EmptyEventList from '../view/empty-event-list';
+import EventPresenter from './eventPresenter';
+import {render} from '../framework/render';
 
 class MainPresenter {
   #eventListComponent = new EventList();
+  #eventPresenters = [];
   #eventsContainer = null;
   #filterContainer = null;
   #eventModel = null;
@@ -24,6 +23,8 @@ class MainPresenter {
     this.offers = [...this.#eventModel.offers];
     this.destinations = [...this.#eventModel.destinations];
 
+    this.#eventPresenters = [];
+
     render(new Filters({events: this.events}), this.#filterContainer);
 
     if (this.events.length === 0) {
@@ -34,49 +35,29 @@ class MainPresenter {
     render(new Sort(), this.#eventsContainer);
     render(this.#eventListComponent, this.#eventsContainer);
 
-    for (const element of this.events) {
-      this.#renderItem(element);
+    for (const event of this.events) {
+      this.#renderItem(event);
     }
   }
 
+  #handleViewChange = () => {
+    this.#eventPresenters.forEach((presenter) => presenter.resetView());
+  };
+
   #renderItem(point) {
-    const onKeydown = (e) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        switchToEvent();
-        document.removeEventListener('keydown', onKeydown);
-      }
-    };
-
-    const eventComponent = new EventItem({
+    const eventPresenter = new EventPresenter({
+      container: this.#eventListComponent.element,
       event: point,
       offers: this.offers,
       destinations: this.destinations,
-      onEditButtonClick: () => {
-        switchToForm();
-        document.addEventListener('keydown', onKeydown);
-      }
-    });
-
-    const editFormComponent = new EditForm({
-      event: point,
-      offers: this.offers,
-      destinations: this.destinations,
-      onSubmit: () => {
-        switchToEvent();
-        document.removeEventListener('keydown', onKeydown);
+      onDataChange: (updatedEvent) => {
+        this.#eventModel.updateEvent(updatedEvent);
+        eventPresenter.updateEvent(updatedEvent);
       },
-      onReset: () => {
-        switchToEvent();
-        document.removeEventListener('keydown', onKeydown);
-      }
+      onViewChange: this.#handleViewChange
     });
-
-    const switchToForm = () => replace(editFormComponent, eventComponent);
-
-    const switchToEvent = () => replace(eventComponent, editFormComponent);
-
-    render(eventComponent, this.#eventListComponent.element);
+    this.#eventPresenters.push(eventPresenter);
+    eventPresenter.init();
   }
 }
 
