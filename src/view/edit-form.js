@@ -1,6 +1,8 @@
 import {DATE_TYPE, POINT_TYPES} from '../const-values';
 import {formatDate} from '../utils/date';
 import AbstractStatefulView from '../framework/view/abstract-stateful-view';
+import flatpickr from 'flatpickr';
+import 'flatpickr/dist/flatpickr.min.css';
 
 const editFormTemplate = (event, offersList, destinations) => {
   const {price, dateFrom, dateTo, cityDestination, offers, type} = event;
@@ -122,7 +124,43 @@ class EditForm extends AbstractStatefulView {
     this.element.querySelectorAll('.event__offer-checkbox').forEach((input) => {
       input.addEventListener('change', this.#offersChangeHandler);
     });
+    flatpickr(
+      this.element.querySelector('input[name="event-start-time"]'),
+      {
+        enableTime: true,
+        dateFormat: 'd/m/y H:i',
+        // eslint-disable-next-line camelcase
+        time_24hr: true,
+        defaultDate: this._state.dateFrom,
+        onChange: this.#dateFromChangeHandler,
+      }
+    );
+    flatpickr(
+      this.element.querySelector('input[name="event-end-time"]'),
+      {
+        enableTime: true,
+        dateFormat: 'd/m/y H:i',
+        // eslint-disable-next-line camelcase
+        time_24hr: true,
+        defaultDate: this._state.dateTo,
+        onChange: this.#dateToChangeHandler,
+      }
+    );
   }
+
+  #dateFromChangeHandler = ([selectedDate]) => {
+    if (this._state.dateTo < selectedDate) {
+      this.updateElement({dateTo: selectedDate});
+    }
+    this.updateElement({dateFrom: selectedDate});
+  };
+
+  #dateToChangeHandler = ([selectedDate]) => {
+    if (this._state.dateFrom > selectedDate) {
+      this.updateElement({dateFrom: selectedDate});
+    }
+    this.updateElement({dateTo: selectedDate});
+  };
 
   #submitHandler = (e) => {
     e.preventDefault();
