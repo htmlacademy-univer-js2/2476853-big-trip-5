@@ -14,7 +14,8 @@ const filterByTime = {
   [FILTER_TYPES.EVERYTHING]: (events) => events,
   [FILTER_TYPES.FUTURE]: (events) => events.filter((event) => dayjs().isBefore(dayjs(event.dateFrom))),
   [FILTER_TYPES.PRESENT]: (events) => events.filter(
-    (event) => dayjs().isSameOrAfter(dayjs(event.dateFrom) && dayjs.isSameOrBefore(dayjs(event.dateTo)))),
+    (event) => dayjs().isSameOrAfter(dayjs(event.dateFrom)) && dayjs().isSameOrBefore(dayjs(event.dateTo))
+  ),
   [FILTER_TYPES.PAST]: (events) => events.filter((event) => dayjs().isAfter(dayjs(event.dateTo)))
 };
 

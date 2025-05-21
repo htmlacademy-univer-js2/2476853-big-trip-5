@@ -3,7 +3,7 @@ import AbstractView from '../framework/view/abstract-view';
 import {DATE_TYPE} from '../const-values';
 
 const eventItemTemplate = (event, offersList, destinations) => {
-  const {price, dateFrom, dateTo, cityDestination, isFavorite, offers, type} = event;
+  const {price, dateFrom, dateTo, cityDestination, isFavorite, type} = event;
   const eventTypeOffers = offersList.find((offer) => offer.type === type);
   const destination = destinations.find((item) => item.id === cityDestination);
 
@@ -51,15 +51,18 @@ class EventItem extends AbstractView {
   #offers = null;
   #destinations = null;
   #onEditButtonClick = null;
+  #onFavoriteClick = null;
 
-  constructor({event, offers, destinations, onEditButtonClick}) {
+  constructor({event, offers, destinations, onEditButtonClick, onFavoriteClick}) {
     super();
     this.#event = event;
     this.#offers = offers;
     this.#destinations = destinations;
     this.#onEditButtonClick = onEditButtonClick;
+    this.#onFavoriteClick = onFavoriteClick;
 
     this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#onEditButtonClick);
+    this.element.querySelector('.event__favorite-btn').addEventListener('click', this.#onFavoriteClick);
   }
 
   get template() {

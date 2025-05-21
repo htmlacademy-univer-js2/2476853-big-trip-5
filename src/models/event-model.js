@@ -20,6 +20,12 @@ class EventModel {
   get destinations() {
     return this.#destinations;
   }
+
+  updateEvent(updatedEvent) {
+    this.#events = this.#events.map((event) =>
+      event.id === updatedEvent.id ? updatedEvent : event
+    );
+  }
 }
 
 export default EventModel;
