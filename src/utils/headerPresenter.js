@@ -1,27 +1,45 @@
-import {render, RenderPosition} from '../framework/render';
+import {render, replace, RenderPosition} from '../framework/render';
 import Header from '../view/header';
 
 class HeaderPresenter {
   #headerContainer = null;
   #eventModel = null;
+  #headerComponent = null;
 
   constructor(headerContainer, eventModel) {
     this.#headerContainer = headerContainer;
     this.#eventModel = eventModel;
+    this.#eventModel.addObserver(this.#handleModelEvent);
   }
 
   init() {
-    this.events = [...this.#eventModel.events];
-    this.destinations = [...this.#eventModel.destinations];
-    render(new Header({
-      events: this.events,
-      destinations: this.#getDestinations()
-    }), this.#headerContainer, RenderPosition.AFTERBEGIN);
+    this.#renderHeader();
   }
 
-  #getDestinations() {
-    const destinations = this.events.map((event) => event.destination);
-    return this.destinations.filter((destination) => destinations.includes(destination.id));
+  #handleModelEvent = (updateType) => {
+    if (updateType === 'eventsChanged') {
+      this.#renderHeader(true);
+    }
+  };
+
+  #renderHeader(replaceExisting = false) {
+    const events = [...this.#eventModel.events];
+    const destinationsList = [...this.#eventModel.destinations];
+    const headerComponent = new Header({
+      events,
+      destinations: this.#getDestinations(events, destinationsList)
+    });
+    if (replaceExisting && this.#headerComponent) {
+      replace(headerComponent, this.#headerComponent);
+    } else {
+      render(headerComponent, this.#headerContainer, RenderPosition.AFTERBEGIN);
+    }
+    this.#headerComponent = headerComponent;
+  }
+
+  #getDestinations(events, destinations) {
+    const eventDestinations = events.map((event) => event.cityDestination);
+    return destinations.filter((destination) => eventDestinations.includes(destination.id));
   }
 }
 

@@ -1,46 +1,82 @@
 import EventList from '../view/event-list';
-import Filters from '../view/filters';
-import Sort from '../view/sort';
 import EmptyEventList from '../view/empty-event-list';
+import Sort from '../view/sort';
+import {filterByTime} from './date';
 import EventPresenter from './eventPresenter';
-import {render} from '../framework/render';
+import {render, remove, RenderPosition} from '../framework/render';
+import {FILTER_TYPES, USER_ACTION} from '../const-values';
 
 class MainPresenter {
-  #eventListComponent = new EventList();
+  #eventListComponent = null;
   #eventPresenters = [];
   #sortComponent = null;
   #currentSortType = 'sort-price';
   #eventsContainer = null;
-  #filterContainer = null;
   #eventModel = null;
+  #filterModel = null;
+  #newEventPresenter = null;
 
-  constructor(eventsContainer, filterContainer, eventModel) {
+  constructor(eventsContainer, eventModel, filterModel) {
     this.#eventsContainer = eventsContainer;
-    this.#filterContainer = filterContainer;
     this.#eventModel = eventModel;
+    this.#filterModel = filterModel;
+    this.#filterModel.addObserver((eventType) => {
+      if (eventType === 'filterChanged') {
+        this.#currentSortType = 'sort-price';
+        this.#clearBoard();
+        this.init();
+      }
+    });
   }
 
   init() {
-    this.events = [...this.#eventModel.events];
+    const allEvents = this.#eventModel.events;
+    const currentFilter = this.#filterModel.getFilter();
+    this.events = filterByTime[currentFilter](allEvents);
     this.offers = [...this.#eventModel.offers];
     this.destinations = [...this.#eventModel.destinations];
-
     this.#eventPresenters = [];
-
-    render(new Filters({events: this.events}), this.#filterContainer);
-
     if (this.events.length === 0) {
-      render(new EmptyEventList(), this.#eventsContainer);
+      this.#eventListComponent = new EmptyEventList({filterType: currentFilter});
+      render(this.#eventListComponent, this.#eventsContainer);
       return;
+    } else {
+      this.#eventListComponent = new EventList();
     }
-
     this.#sortComponent = new Sort({onSortTypeChange: this.#handleSortTypeChange});
     render(this.#sortComponent, this.#eventsContainer);
     render(this.#eventListComponent, this.#eventsContainer);
-
     for (const event of this.events) {
       this.#renderItem(event);
     }
+  }
+
+  createEvent() {
+    if (this.#newEventPresenter) {
+      return;
+    }
+
+    this.#handleViewChange();
+    this.#filterModel.setFilter(FILTER_TYPES.EVERYTHING);
+    const newEvent = {
+      id: String(Date.now()),
+      type: 'flight',
+      offers: [],
+      price: 0,
+      isFavorite: false
+    };
+    const eventPresenter = new EventPresenter({
+      container: this.#eventListComponent.element,
+      event: newEvent,
+      offers: this.offers,
+      destinations: this.destinations,
+      onDataChange: this.#handleViewAction,
+      onViewChange: this.#handleViewChange,
+      isNewEvent: true,
+      placement: RenderPosition.AFTERBEGIN
+    });
+    eventPresenter.init();
+    this.#newEventPresenter = eventPresenter;
   }
 
   #handleSortTypeChange = (sortType) => {
@@ -73,10 +109,23 @@ class MainPresenter {
   #clearEventList = () => {
     this.#eventPresenters.forEach((presenter) => presenter.destroy());
     this.#eventPresenters = [];
+    this.#newEventPresenter?.destroy();
+    this.#newEventPresenter = null;
+  };
+
+  #clearBoard = () => {
+    if (this.#sortComponent) {
+      remove(this.#sortComponent);
+      this.#sortComponent = null;
+    }
+    this.#clearEventList();
+    remove(this.#eventListComponent);
   };
 
   #handleViewChange = () => {
     this.#eventPresenters.forEach((presenter) => presenter.resetView());
+    this.#newEventPresenter?.destroy();
+    this.#newEventPresenter = null;
   };
 
   #renderItem(point) {
@@ -85,15 +134,30 @@ class MainPresenter {
       event: point,
       offers: this.offers,
       destinations: this.destinations,
-      onDataChange: (updatedEvent) => {
-        this.#eventModel.updateEvent(updatedEvent);
-        eventPresenter.updateEvent(updatedEvent);
-      },
+      onDataChange: this.#handleViewAction,
       onViewChange: this.#handleViewChange
     });
     this.#eventPresenters.push(eventPresenter);
     eventPresenter.init();
   }
+
+  #handleViewAction = (actionType, update) => {
+    switch (actionType) {
+      case USER_ACTION.UPDATE:
+        this.#eventModel.updateEvent(update);
+        break;
+      case USER_ACTION.DELETE:
+        this.#eventModel.deleteEvent(update.id);
+        break;
+      case USER_ACTION.ADD:
+        this.#eventModel.addEvent(update);
+        this.#newEventPresenter.destroy();
+        this.#newEventPresenter = null;
+        break;
+    }
+    this.#clearBoard();
+    this.init();
+  };
 }
 
 export default MainPresenter;
