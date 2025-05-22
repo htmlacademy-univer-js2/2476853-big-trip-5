@@ -1,11 +1,13 @@
 import AbstractView from '../framework/view/abstract-view';
+import {formatDate} from '../utils/date';
+import {DATE_TYPE} from '../const-values';
 
-function createHeaderTemplate({price, destinations}) {
+function createHeaderTemplate({price, destinations, dateStart, dateEnd}) {
   return (
     `<section class="trip-main__trip-info  trip-info">
        <div class="trip-info__main">
          <h1 class="trip-info__title">${destinations}</h1>
-         <p class="trip-info__dates">18&nbsp;&mdash;&nbsp;20 Mar</p>
+         <p class="trip-info__dates">${dateStart}&nbsp;&mdash;&nbsp;${dateEnd}</p>
        </div>
        <p class="trip-info__cost">
          Total: &euro;&nbsp;<span class="trip-info__cost-value">${price}</span>
@@ -25,7 +27,14 @@ class Header extends AbstractView {
   }
 
   get template() {
-    return createHeaderTemplate({price: this.#calculatePrice(), destinations: this.#getDestinations()});
+    const dateStart = this.#calculateStartDate();
+    const dateEnd = this.#calculateEndDate();
+    return createHeaderTemplate({
+      price: this.#calculatePrice(),
+      destinations: this.#getDestinations(),
+      dateStart,
+      dateEnd
+    });
   }
 
   #calculatePrice() {
@@ -34,6 +43,24 @@ class Header extends AbstractView {
 
   #getDestinations() {
     return this.#destinations.map((item) => item.name).join(' &mdash; ');
+  }
+
+  #calculateStartDate() {
+    if (this.#events.length === 0) {
+      return '';
+    }
+    const dates = this.#events.map((event) => new Date(event.dateFrom).getTime());
+    const minTime = Math.min(...dates);
+    return formatDate(new Date(minTime), DATE_TYPE.MONTH);
+  }
+
+  #calculateEndDate() {
+    if (this.#events.length === 0) {
+      return '';
+    }
+    const dates = this.#events.map((event) => new Date(event.dateTo).getTime());
+    const maxTime = Math.max(...dates);
+    return formatDate(new Date(maxTime), DATE_TYPE.MONTH);
   }
 }
 

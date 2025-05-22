@@ -34,7 +34,7 @@ const editFormTemplate = (event, offersList, destinations) => {
                     <label class="event__label  event__type-output" for="event-destination-1">
                       ${type}
                     </label>
-                    <input class="event__input  event__input--destination" id="event-destination-1" type="text" name="event-destination" value="${destination.name}" list="destination-list-1">
+                    <input class="event__input  event__input--destination" id="event-destination-1" type="text" required name="event-destination" value="${destination?.name ?? ''}" list="destination-list-1">
                     <datalist id="destination-list-1">
                       ${destinationsToOptions}
                     </datalist>
@@ -53,11 +53,11 @@ const editFormTemplate = (event, offersList, destinations) => {
                       <span class="visually-hidden">Price</span>
                       &euro;
                     </label>
-                    <input class="event__input  event__input--price" id="event-price-1" type="text" name="event-price" value="${price}">
+                    <input class="event__input  event__input--price" id="event-price-1" type="number" name="event-price" value="${price}">
                   </div>
 
                   <button class="event__save-btn  btn  btn--blue" type="submit">Save</button>
-                  <button class="event__reset-btn" type="reset">Delete</button>
+                  <button class="event__reset-btn" type="button">Delete</button>
                   <button class="event__rollup-btn" type="button">
                     <span class="visually-hidden">Open event</span>
                   </button>
@@ -78,10 +78,10 @@ const editFormTemplate = (event, offersList, destinations) => {
                   </section>
                   <section class="event__section  event__section--destination">
                     <h3 class="event__section-title  event__section-title--destination">Destination</h3>
-                    <p class="event__destination-description">${destination.description}</p>
+                    <p class="event__destination-description">${destination?.description ?? ''}</p>
                     <div class="event__photos-container">
                       <div class="event__photos-tape">
-                        ${destination.pictures.map((image) => `<img class="event__photo" src="${image.src}" alt="${image.description}">`).join('')}
+                        ${destination?.pictures.map((image) => `<img class="event__photo" src="${image.src}" alt="${image.description}">`).join('') ?? ''}
                       </div>
                     </div>
                   </section>
@@ -95,9 +95,10 @@ class EditForm extends AbstractStatefulView {
   #destinations = null;
   #onSubmit = null;
   #onReset = null;
+  #onDelete = null;
   #originalState = null;
 
-  constructor({event, offers, destinations, onSubmit, onReset}) {
+  constructor({event, offers, destinations, onSubmit, onReset, onDelete}) {
     super();
     this._setState(event);
     this.#originalState = structuredClone(event);
@@ -105,6 +106,7 @@ class EditForm extends AbstractStatefulView {
     this.#destinations = destinations;
     this.#onSubmit = onSubmit;
     this.#onReset = onReset;
+    this.#onDelete = onDelete;
     this._restoreHandlers();
   }
 
@@ -115,7 +117,7 @@ class EditForm extends AbstractStatefulView {
   _restoreHandlers() {
     const form = this.element.querySelector('form');
     form.addEventListener('submit', this.#submitHandler);
-    form.addEventListener('reset', this.#resetHandler);
+    this.element.querySelector('.event__reset-btn').addEventListener('click', this.#deleteHandler);
     this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#resetHandler);
     this.element.querySelectorAll('input[name="event-type"]').forEach((input) => {
       input.addEventListener('change', this.#typeChangeHandler);
@@ -124,6 +126,7 @@ class EditForm extends AbstractStatefulView {
     this.element.querySelectorAll('.event__offer-checkbox').forEach((input) => {
       input.addEventListener('change', this.#offersChangeHandler);
     });
+    this.element.querySelector('.event__input--price').addEventListener('input', this.#priceChangeHandler);
     flatpickr(
       this.element.querySelector('input[name="event-start-time"]'),
       {
@@ -173,6 +176,11 @@ class EditForm extends AbstractStatefulView {
     this.#onReset();
   };
 
+  #deleteHandler = (e) => {
+    e.preventDefault();
+    this.#onDelete(this._state);
+  };
+
   #typeChangeHandler = (e) => {
     const newType = e.target.value;
     this.updateElement({type: newType, offers: []});
@@ -198,6 +206,11 @@ class EditForm extends AbstractStatefulView {
       }
     }
     this.updateElement({offers: currentOffers});
+  };
+
+  #priceChangeHandler = (e) => {
+    const price = parseInt(e.target.value, 10) || 0;
+    this._setState({price});
   };
 }
 

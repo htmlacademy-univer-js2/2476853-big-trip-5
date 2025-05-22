@@ -2,7 +2,7 @@ import AbstractView from '../framework/view/abstract-view';
 import {filterByTime} from '../utils/date';
 
 const filterTemplate = (filter, isChecked) => {
-  const {type, count} = filter;
+  const {type} = filter;
   return (
     `<div class="trip-filters__filter">
        <input id="filter-${type}"
@@ -10,40 +10,49 @@ const filterTemplate = (filter, isChecked) => {
              type="radio"
              name="trip-filter"
              value="${type}"
-             ${isChecked ? 'checked' : ''}
-             ${count === 0 ? 'disabled' : ''}>
+             ${isChecked ? 'checked' : ''}>
        <label class="trip-filters__filter-label" for="filter-${type}">${type}</label>
      </div>`
   );
 };
 
-const filtersTemplate = (filters) => (
+const filtersTemplate = (filters, currentFilter) => (
   `<form class="trip-filters" action="#" method="get">
-       ${filters.map((currentFilter, index) => filterTemplate(currentFilter, index === 0)).join('')}
+       ${filters.map((filter) => filterTemplate(filter, filter.type === currentFilter)).join('')}
        <button class="visually-hidden" type="submit">Accept filter</button>
   </form>`
 );
 
 class Filters extends AbstractView {
-  #events = null;
+  #currentFilter = null;
+  _callback = null;
 
-  constructor({events}) {
+  constructor({currentFilter, onFilterTypeChange}) {
     super();
-    this.#events = events;
+    this.#currentFilter = currentFilter;
+    this._callback = onFilterTypeChange;
+    this.element.addEventListener('change', this.#filterTypeChangeHandler);
   }
 
   get template() {
-    return filtersTemplate(this.#createFilters());
+    return filtersTemplate(this.#createFilters(), this.#currentFilter);
   }
 
   #createFilters() {
     return Object.entries(filterByTime).map(
-      ([filterType, filterEvents]) => ({
+      ([filterType]) => ({
         type: filterType,
-        count: filterEvents(this.#events).length,
+        isSelected: filterType === this.#currentFilter
       }),
     );
   }
+
+  #filterTypeChangeHandler = (evt) => {
+    if (evt.target.tagName !== 'INPUT' || evt.target.disabled) {
+      return;
+    }
+    this._callback(evt.target.value);
+  };
 }
 
 export default Filters;

@@ -1,11 +1,7 @@
 import EventItem from '../view/event-item';
 import EditForm from '../view/edit-form';
-import {remove, render, replace} from '../framework/render';
-
-const STATE = {
-  DEFAULT: 'DEFAULT',
-  EDIT: 'EDIT',
-};
+import {remove, render, RenderPosition, replace} from '../framework/render';
+import {POINT_STATE, USER_ACTION} from '../const-values';
 
 export default class EventPresenter {
   #container = null;
@@ -14,18 +10,21 @@ export default class EventPresenter {
   #destinations = null;
   #onDataChange = null;
   #onViewChange = null;
-  #state = STATE.DEFAULT;
-
+  #state = POINT_STATE.DEFAULT;
+  #isNewEvent = false;
+  #placement = null;
   #eventComponent = null;
   #editComponent = null;
 
-  constructor({container, event, offers, destinations, onDataChange, onViewChange}) {
+  constructor({container, event, offers, destinations, onDataChange, onViewChange, isNewEvent = false, placement = RenderPosition.BEFOREEND}) {
     this.#container = container;
     this.#event = event;
     this.#offers = offers;
     this.#destinations = destinations;
     this.#onDataChange = onDataChange;
     this.#onViewChange = onViewChange;
+    this.#isNewEvent = isNewEvent;
+    this.#placement = placement;
   }
 
   init() {
@@ -45,12 +44,17 @@ export default class EventPresenter {
       offers: this.#offers,
       destinations: this.#destinations,
       onSubmit: this.#handleFormSubmit,
-      onReset: this.#handleFormReset
+      onReset: this.#handleFormReset,
+      onDelete: this.#handleDeleteClick
     });
 
-    if (!prevEventComponent) {
-      render(this.#eventComponent, this.#container);
-    } else if (this.#state === STATE.DEFAULT) {
+    if (!prevEventComponent && !prevEditComponent) {
+      if (this.#isNewEvent) {
+        render(this.#editComponent, this.#container, this.#placement);
+      } else {
+        render(this.#eventComponent, this.#container, this.#placement);
+      }
+    } else if (this.#state === POINT_STATE.DEFAULT) {
       replace(this.#eventComponent, prevEventComponent);
     } else {
       replace(this.#editComponent, prevEditComponent);
@@ -60,11 +64,12 @@ export default class EventPresenter {
   #handleEditClick = () => {
     this.#onViewChange();
     replace(this.#editComponent, this.#eventComponent);
-    this.#state = STATE.EDIT;
+    this.#state = POINT_STATE.EDIT;
     document.addEventListener('keydown', this.#escKeyDownHandler);
   };
 
-  #handleFormSubmit = () => {
+  #handleFormSubmit = (e) => {
+    this.#onDataChange(this.#isNewEvent ? USER_ACTION.ADD : USER_ACTION.UPDATE, e);
     this.#replaceFormToEvent();
   };
 
@@ -73,20 +78,27 @@ export default class EventPresenter {
   };
 
   #replaceFormToEvent() {
+    if (this.#isNewEvent) {
+      return;
+    }
     replace(this.#eventComponent, this.#editComponent);
-    this.#state = STATE.DEFAULT;
+    this.#state = POINT_STATE.DEFAULT;
     document.removeEventListener('keydown', this.#escKeyDownHandler);
   }
 
   resetView() {
-    if (this.#state === STATE.EDIT) {
+    if (this.#state === POINT_STATE.EDIT) {
       this.#replaceFormToEvent();
     }
   }
 
   #handleFavoriteClick = () => {
     const updatedEvent = {...this.#event, isFavorite: !this.#event.isFavorite};
-    this.#onDataChange(updatedEvent);
+    this.#onDataChange(USER_ACTION.UPDATE, updatedEvent);
+  };
+
+  #handleDeleteClick = () => {
+    this.#onDataChange(USER_ACTION.DELETE, this.#event);
   };
 
   #escKeyDownHandler = (e) => {
@@ -103,7 +115,7 @@ export default class EventPresenter {
   }
 
   destroy() {
-    if (this.#state === STATE.EDIT) {
+    if (this.#state === POINT_STATE.EDIT) {
       document.removeEventListener('keydown', this.#escKeyDownHandler);
     }
     remove(this.#eventComponent);

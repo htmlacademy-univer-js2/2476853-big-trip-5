@@ -4,7 +4,7 @@ import {DATE_TYPE} from '../const-values';
 
 const eventItemTemplate = (event, offersList, destinations) => {
   const {price, dateFrom, dateTo, cityDestination, isFavorite, type} = event;
-  const eventTypeOffers = offersList.find((offer) => offer.type === type);
+  const eventTypeOffers = offersList.find((offer) => offer.type === type).offers.filter((offer) => event.offers.includes(offer.id));
   const destination = destinations.find((item) => item.id === cityDestination);
 
   return `<li class="trip-events__item">
@@ -13,7 +13,7 @@ const eventItemTemplate = (event, offersList, destinations) => {
                 <div class="event__type">
                   <img class="event__type-icon" width="42" height="42" src="img/icons/${type}.png" alt="Event type icon">
                 </div>
-                <h3 class="event__title">${type} ${destination.name}</h3>
+                <h3 class="event__title">${type} ${destination?.name}</h3>
                 <div class="event__schedule">
                   <p class="event__time">
                     <time class="event__start-time" datetime="2019-03-18T10:30">${formatDate(dateFrom, DATE_TYPE.TIME)}</time>
@@ -27,7 +27,7 @@ const eventItemTemplate = (event, offersList, destinations) => {
                 </p>
                 <h4 class="visually-hidden">Offers:</h4>
                 <ul class="event__selected-offers">
-                  ${eventTypeOffers.offers.map((offer) => (`<li class="event__offer">
+                  ${eventTypeOffers.map((offer) => (`<li class="event__offer">
                  <span class="event__offer-title">${offer.title}</span>
                  &plus;&euro;&nbsp;
                  <span class="event__offer-price">${offer.price}</span>
