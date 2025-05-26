@@ -65,6 +65,10 @@ class EventItem extends AbstractView {
     this.element.querySelector('.event__favorite-btn').addEventListener('click', this.#onFavoriteClick);
   }
 
+  get event() {
+    return this.#event;
+  }
+
   get template() {
     return eventItemTemplate(this.#event, this.#offers, this.#destinations);
   }

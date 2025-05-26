@@ -16,6 +16,10 @@ export default class EventPresenter {
   #eventComponent = null;
   #editComponent = null;
 
+  get event() {
+    return this.#event;
+  }
+
   constructor({container, event, offers, destinations, onDataChange, onViewChange, isNewEvent = false, placement = RenderPosition.BEFOREEND}) {
     this.#container = container;
     this.#event = event;
@@ -68,9 +72,11 @@ export default class EventPresenter {
     document.addEventListener('keydown', this.#escKeyDownHandler);
   };
 
-  #handleFormSubmit = (e) => {
-    this.#onDataChange(this.#isNewEvent ? USER_ACTION.ADD : USER_ACTION.UPDATE, e);
-    this.#replaceFormToEvent();
+  #handleFormSubmit = async (e) => {
+    const success = await this.#onDataChange(this.#isNewEvent ? USER_ACTION.ADD : USER_ACTION.UPDATE, e);
+    if (success) {
+      this.#replaceFormToEvent();
+    }
   };
 
   #handleFormReset = () => {
@@ -112,6 +118,26 @@ export default class EventPresenter {
   updateEvent(updatedEvent) {
     this.#event = updatedEvent;
     this.init();
+  }
+
+  setSaving() {
+    if (this.#state === POINT_STATE.EDIT) {
+      this.#editComponent.setSaving();
+    }
+  }
+
+  setDeleting() {
+    if (this.#state === POINT_STATE.EDIT) {
+      this.#editComponent.setDeleting();
+    }
+  }
+
+  setAborting() {
+    if (this.#state === POINT_STATE.EDIT) {
+      this.#editComponent.setAborting();
+    } else {
+      this.#eventComponent.shake();
+    }
   }
 
   destroy() {
