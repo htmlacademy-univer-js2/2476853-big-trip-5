@@ -25,10 +25,9 @@ class HeaderPresenter {
 
   #renderHeader(replaceExisting = false) {
     const events = [...this.#eventModel.events];
-    const destinationsList = [...this.#eventModel.destinations];
     const headerComponent = new Header({
       events,
-      destinations: this.#getDestinations(events, destinationsList)
+      destinations: events.map((e) => this.#eventModel.destinations.find((d) => d.id === e.cityDestination))
     });
     if (replaceExisting && this.#headerComponent) {
       replace(headerComponent, this.#headerComponent);
@@ -36,11 +35,6 @@ class HeaderPresenter {
       render(headerComponent, this.#headerContainer, RenderPosition.AFTERBEGIN);
     }
     this.#headerComponent = headerComponent;
-  }
-
-  #getDestinations(events, destinations) {
-    const eventDestinations = events.map((event) => event.cityDestination);
-    return destinations.filter((destination) => eventDestinations.includes(destination.id));
   }
 }
 

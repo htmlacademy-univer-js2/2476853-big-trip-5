@@ -1,8 +1,8 @@
-import MainPresenter from './utils/main-presenter';
+import MainPresenter from './presenters/main-presenter';
 import EventModel from './models/event-model';
 import FilterModel from './models/filter-model';
-import FilterPresenter from './utils/filterPresenter';
-import HeaderPresenter from './utils/header-presenter';
+import FilterPresenter from './presenters/filter-presenter';
+import HeaderPresenter from './presenters/header-presenter';
 import TripApiService from './services/trip-api-service';
 
 const AUTHORIZATION = 'Basic poewjsfhpv982l';
@@ -16,7 +16,7 @@ const tripApiService = new TripApiService(END_POINT, AUTHORIZATION);
 const eventModel = new EventModel({tripApiService});
 
 const filterModel = new FilterModel();
-const filterPresenter = new FilterPresenter(filterContainer, filterModel);
+const filterPresenter = new FilterPresenter(filterContainer, filterModel, eventModel);
 filterPresenter.init();
 
 const headerPresenter = new HeaderPresenter(headerContainer, eventModel);
