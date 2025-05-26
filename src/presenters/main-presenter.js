@@ -3,8 +3,8 @@ import EmptyEventList from '../view/empty-event-list';
 import LoadingView from '../view/loading';
 import ErrorView from '../view/error';
 import Sort from '../view/sort';
-import {filterByTime} from './date';
-import EventPresenter from './eventPresenter';
+import {filterByTime} from '../utils/date';
+import EventPresenter from './event-presenter';
 import {render, remove, RenderPosition} from '../framework/render';
 import {FILTER_TYPES, UPDATE_TYPE, USER_ACTION} from '../const-values';
 import UiBlocker from '../framework/ui-blocker/ui-blocker';
@@ -75,8 +75,24 @@ class MainPresenter {
     render(this.#sortComponent, this.#eventsContainer);
     render(this.#eventListComponent, this.#eventsContainer);
 
-    for (const event of this.events) {
+    const sortedEvents = this.#getSortedEvents(this.events, this.#currentSortType);
+    for (const event of sortedEvents) {
       this.#renderItem(event);
+    }
+  }
+
+  #getSortedEvents(events, sortType) {
+    switch (sortType) {
+      case 'sort-day':
+        return [...events].sort((a, b) => a.dateFrom - b.dateFrom);
+      case 'sort-time':
+        return [...events].sort(
+          (a, b) => (b.dateTo - b.dateFrom) - (a.dateTo - a.dateFrom)
+        );
+      case 'sort-price':
+        return [...events].sort((a, b) => b.price - a.price);
+      default:
+        return [...events];
     }
   }
 
@@ -142,22 +158,7 @@ class MainPresenter {
       return;
     }
     this.#currentSortType = sortType;
-    let sortedEvents;
-    switch (sortType) {
-      case 'sort-day':
-        sortedEvents = [...this.events].sort((a, b) => a.dateFrom - b.dateFrom);
-        break;
-      case 'sort-time':
-        sortedEvents = [...this.events].sort(
-          (a, b) => (b.dateTo - b.dateFrom) - (a.dateTo - a.dateFrom)
-        );
-        break;
-      case 'sort-price':
-        sortedEvents = [...this.events].sort((a, b) => b.price - a.price);
-        break;
-      default:
-        sortedEvents = [...this.events];
-    }
+    const sortedEvents = this.#getSortedEvents(this.events, sortType);
     this.#clearEventList();
     for (const event of sortedEvents) {
       this.#renderItem(event);

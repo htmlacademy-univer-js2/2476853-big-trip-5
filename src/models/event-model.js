@@ -74,16 +74,6 @@ class EventModel extends Observable {
     this._notify(UPDATE_TYPE.UPDATE, this.#events);
   }
 
-  addEvent(event) {
-    this.#events = [event, ...this.#events];
-    this._notify(UPDATE_TYPE.UPDATE, this.#events);
-  }
-
-  deleteEvent(eventId) {
-    this.#events = this.#events.filter((event) => event.id !== eventId);
-    this._notify(UPDATE_TYPE.UPDATE, this.#events);
-  }
-
   async updateEvent(updatedEvent) {
     const response = await this.#tripApiService.updatePoint(updatedEvent);
     const adaptedEvent = convertToClient.point(response);
