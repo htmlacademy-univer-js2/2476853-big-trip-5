@@ -42,7 +42,16 @@ class Header extends AbstractView {
   }
 
   #getDestinations() {
-    return this.#destinations.map((item) => item.name).join(' &mdash; ');
+    if (this.#destinations.length === 0) {
+      return '';
+    }
+
+    const names = this.#destinations.map((item) => item.name);
+    if (names.length <= 3) {
+      return names.join(' — ');
+    }
+
+    return `${names[0]} — ... — ${names[names.length - 1]}`;
   }
 
   #calculateStartDate() {
