@@ -67,8 +67,8 @@ const editFormTemplate = (event, offersList, destinations) => {
                     <h3 class="event__section-title  event__section-title--offers">Offers</h3>
                     <div class="event__available-offers">
                         ${eventTypeOffers.offers.map((offer) => (`<div class="event__offer-selector">
-                                <input class="event__offer-checkbox  visually-hidden" id="event-offer-luggage-${offer.id}" type="checkbox" name="event-offer-luggage" ${offers.includes(offer.id) ? 'checked' : ''}>
-                                <label class="event__offer-label" for="event-offer-luggage-${offer.id}">
+                                <input class="event__offer-checkbox  visually-hidden" value="${offer.id}" id="event-offer-${offer.id}" type="checkbox" name="event-offer" ${offers.includes(offer.id) ? 'checked' : ''}>
+                                <label class="event__offer-label" for="event-offer-${offer.id}">
                                   <span class="event__offer-title">${offer.title}</span>
                                   &plus;&euro;&nbsp;
                                   <span class="event__offer-price">${offer.price}</span>
@@ -195,7 +195,7 @@ class EditForm extends AbstractStatefulView {
   };
 
   #offersChangeHandler = (e) => {
-    const offerId = parseInt(e.target.id.split('-').pop(), 10);
+    const offerId = e.target.value;
     const currentOffers = [...this._state.offers];
     if (e.target.checked) {
       currentOffers.push(offerId);

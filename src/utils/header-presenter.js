@@ -1,5 +1,6 @@
 import {render, replace, RenderPosition} from '../framework/render';
 import Header from '../view/header';
+import {UPDATE_TYPE} from '../const-values';
 
 class HeaderPresenter {
   #headerContainer = null;
@@ -17,7 +18,7 @@ class HeaderPresenter {
   }
 
   #handleModelEvent = (updateType) => {
-    if (updateType === 'eventsChanged') {
+    if (updateType === UPDATE_TYPE.UPDATE || updateType === UPDATE_TYPE.LOADED) {
       this.#renderHeader(true);
     }
   };

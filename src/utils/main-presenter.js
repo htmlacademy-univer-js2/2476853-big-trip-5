@@ -1,13 +1,17 @@
 import EventList from '../view/event-list';
 import EmptyEventList from '../view/empty-event-list';
+import LoadingView from '../view/loading';
+import ErrorView from '../view/error';
 import Sort from '../view/sort';
 import {filterByTime} from './date';
 import EventPresenter from './eventPresenter';
 import {render, remove, RenderPosition} from '../framework/render';
-import {FILTER_TYPES, USER_ACTION} from '../const-values';
+import {FILTER_TYPES, UPDATE_TYPE, USER_ACTION} from '../const-values';
 
 class MainPresenter {
   #eventListComponent = null;
+  #loadingComponent = new LoadingView();
+  #errorComponent = new ErrorView();
   #eventPresenters = [];
   #sortComponent = null;
   #currentSortType = 'sort-price';
@@ -20,6 +24,8 @@ class MainPresenter {
     this.#eventsContainer = eventsContainer;
     this.#eventModel = eventModel;
     this.#filterModel = filterModel;
+
+    this.#eventModel.addObserver(this.#handleModelEvent);
     this.#filterModel.addObserver((eventType) => {
       if (eventType === 'filterChanged') {
         this.#currentSortType = 'sort-price';
@@ -30,12 +36,23 @@ class MainPresenter {
   }
 
   init() {
+    if (this.#eventModel.isLoading) {
+      this.#renderLoading();
+      return;
+    }
+
+    if (this.#eventModel.isError) {
+      this.#renderError();
+      return;
+    }
+
     const allEvents = this.#eventModel.events;
     const currentFilter = this.#filterModel.getFilter();
     this.events = filterByTime[currentFilter](allEvents);
     this.offers = [...this.#eventModel.offers];
     this.destinations = [...this.#eventModel.destinations];
     this.#eventPresenters = [];
+
     if (this.events.length === 0) {
       this.#eventListComponent = new EmptyEventList({filterType: currentFilter});
       render(this.#eventListComponent, this.#eventsContainer);
@@ -43,13 +60,44 @@ class MainPresenter {
     } else {
       this.#eventListComponent = new EventList();
     }
+
     this.#sortComponent = new Sort({onSortTypeChange: this.#handleSortTypeChange});
     render(this.#sortComponent, this.#eventsContainer);
     render(this.#eventListComponent, this.#eventsContainer);
+
     for (const event of this.events) {
       this.#renderItem(event);
     }
   }
+
+  #renderLoading() {
+    render(this.#loadingComponent, this.#eventsContainer);
+  }
+
+  #renderError() {
+    render(this.#errorComponent, this.#eventsContainer);
+  }
+
+  #handleModelEvent = (eventType) => {
+    switch (eventType) {
+      case UPDATE_TYPE.LOADING:
+        this.#clearBoard();
+        this.#renderLoading();
+        break;
+      case UPDATE_TYPE.LOADED:
+        remove(this.#loadingComponent);
+        this.init();
+        break;
+      case UPDATE_TYPE.ERROR:
+        remove(this.#loadingComponent);
+        this.#renderError();
+        break;
+      case UPDATE_TYPE.UPDATE:
+        this.#clearBoard();
+        this.init();
+        break;
+    }
+  };
 
   createEvent() {
     if (this.#newEventPresenter) {
@@ -120,6 +168,8 @@ class MainPresenter {
     }
     this.#clearEventList();
     remove(this.#eventListComponent);
+    remove(this.#loadingComponent);
+    remove(this.#errorComponent);
   };
 
   #handleViewChange = () => {
@@ -141,22 +191,20 @@ class MainPresenter {
     eventPresenter.init();
   }
 
-  #handleViewAction = (actionType, update) => {
+  #handleViewAction = async (actionType, update) => {
     switch (actionType) {
       case USER_ACTION.UPDATE:
-        this.#eventModel.updateEvent(update);
+        await this.#eventModel.updateEvent(update);
         break;
       case USER_ACTION.DELETE:
         this.#eventModel.deleteEvent(update.id);
         break;
       case USER_ACTION.ADD:
         this.#eventModel.addEvent(update);
-        this.#newEventPresenter.destroy();
+        this.#newEventPresenter?.destroy();
         this.#newEventPresenter = null;
         break;
     }
-    this.#clearBoard();
-    this.init();
   };
 }
 
