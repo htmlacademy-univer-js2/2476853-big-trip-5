@@ -7,6 +7,12 @@ import {filterByTime} from './date';
 import EventPresenter from './eventPresenter';
 import {render, remove, RenderPosition} from '../framework/render';
 import {FILTER_TYPES, UPDATE_TYPE, USER_ACTION} from '../const-values';
+import UiBlocker from '../framework/ui-blocker/ui-blocker';
+
+const TIME_LIMIT = {
+  LOWER_LIMIT: 350,
+  UPPER_LIMIT: 1000,
+};
 
 class MainPresenter {
   #eventListComponent = null;
@@ -19,6 +25,10 @@ class MainPresenter {
   #eventModel = null;
   #filterModel = null;
   #newEventPresenter = null;
+  #uiBlocker = new UiBlocker({
+    lowerLimit: TIME_LIMIT.LOWER_LIMIT,
+    upperLimit: TIME_LIMIT.UPPER_LIMIT,
+  });
 
   constructor(eventsContainer, eventModel, filterModel) {
     this.#eventsContainer = eventsContainer;
@@ -192,19 +202,39 @@ class MainPresenter {
   }
 
   #handleViewAction = async (actionType, update) => {
-    switch (actionType) {
-      case USER_ACTION.UPDATE:
-        await this.#eventModel.updateEvent(update);
-        break;
-      case USER_ACTION.DELETE:
-        this.#eventModel.deleteEvent(update.id);
-        break;
-      case USER_ACTION.ADD:
-        this.#eventModel.addEvent(update);
-        this.#newEventPresenter?.destroy();
-        this.#newEventPresenter = null;
-        break;
+    this.#uiBlocker.block();
+    let success = false;
+
+    const eventPresenter = this.#eventPresenters.find((presenter) => presenter.event?.id === update.id) || this.#newEventPresenter;
+
+    try {
+      switch (actionType) {
+        case USER_ACTION.UPDATE:
+          eventPresenter?.setSaving();
+          await this.#eventModel.updateEvent(update);
+          break;
+        case USER_ACTION.DELETE:
+          eventPresenter?.setDeleting();
+          await this.#eventModel.removeEvent(update);
+          break;
+        case USER_ACTION.ADD:
+          this.#newEventPresenter?.setSaving();
+          await this.#eventModel.createEvent(update);
+          this.#newEventPresenter?.destroy();
+          this.#newEventPresenter = null;
+          break;
+      }
+      success = true;
+    } catch (err) {
+      if (actionType === USER_ACTION.UPDATE || actionType === USER_ACTION.DELETE) {
+        eventPresenter?.setAborting();
+      } else if (actionType === USER_ACTION.ADD) {
+        this.#newEventPresenter?.setAborting();
+      }
+    } finally {
+      this.#uiBlocker.unblock();
     }
+    return success;
   };
 }
 

@@ -1,14 +1,18 @@
-import {DATE_TYPE, POINT_TYPES} from '../const-values';
+import {DATE_TYPE, POINT_TYPES, STATE} from '../const-values';
 import {formatDate} from '../utils/date';
 import AbstractStatefulView from '../framework/view/abstract-stateful-view';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 
-const editFormTemplate = (event, offersList, destinations) => {
+const editFormTemplate = (event, offersList, destinations, state = STATE.DEFAULT) => {
   const {price, dateFrom, dateTo, cityDestination, offers, type} = event;
-  const eventTypeOffers = offersList.find((offer) => offer.type === type);
+  const eventTypeOffers = offersList.find((offer) => offer.type === type) || {offers: []};
   const destination = destinations.find((item) => item.id === cityDestination);
   const destinationsToOptions = destinations.map((item) => `<option value="${item.name}"></option>`).join('');
+
+  const isDisabled = state === STATE.DISABLED || state === STATE.SAVING || state === STATE.DELETING;
+  const isSaving = state === STATE.SAVING;
+  const isDeleting = state === STATE.DELETING;
 
   return `<li class="trip-events__item">
               <form class="event event--edit" action="#" method="post">
@@ -18,13 +22,13 @@ const editFormTemplate = (event, offersList, destinations) => {
                       <span class="visually-hidden">Choose event type</span>
                       <img class="event__type-icon" width="17" height="17" src="img/icons/${type}.png" alt="Event type icon">
                     </label>
-                    <input class="event__type-toggle  visually-hidden" id="event-type-toggle-1" type="checkbox">
+                    <input class="event__type-toggle  visually-hidden" id="event-type-toggle-1" type="checkbox" ${isDisabled ? 'disabled' : ''}>
 
                     <div class="event__type-list">
                       <fieldset class="event__type-group">
                         <legend class="visually-hidden">Event type</legend>
                             ${POINT_TYPES.map((eventType) => (`<div class="event__type-item">
-                                          <input id="event-type-${eventType}-1" class="event__type-input  visually-hidden" type="radio" name="event-type" value="${eventType}" ${eventType === type ? 'checked' : ''}>
+                                          <input id="event-type-${eventType}-1" class="event__type-input  visually-hidden" type="radio" name="event-type" value="${eventType}" ${eventType === type ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
                                           <label class="event__type-label  event__type-label--${eventType}" for="event-type-${eventType}-1">${eventType}</label></div>`)).join('')}
                       </fieldset>
                     </div>
@@ -34,7 +38,7 @@ const editFormTemplate = (event, offersList, destinations) => {
                     <label class="event__label  event__type-output" for="event-destination-1">
                       ${type}
                     </label>
-                    <input class="event__input  event__input--destination" id="event-destination-1" type="text" required name="event-destination" value="${destination?.name ?? ''}" list="destination-list-1">
+                    <input class="event__input  event__input--destination" id="event-destination-1" type="text" required name="event-destination" value="${destination?.name ?? ''}" list="destination-list-1" ${isDisabled ? 'disabled' : ''}>
                     <datalist id="destination-list-1">
                       ${destinationsToOptions}
                     </datalist>
@@ -42,10 +46,10 @@ const editFormTemplate = (event, offersList, destinations) => {
 
                   <div class="event__field-group  event__field-group--time">
                     <label class="visually-hidden" for="event-start-time-1">From</label>
-                    <input class="event__input  event__input--time" id="event-start-time-1" type="text" name="event-start-time" value="${formatDate(dateFrom, DATE_TYPE.DATE)}">
+                    <input class="event__input  event__input--time" id="event-start-time-1" type="text" name="event-start-time" value="${formatDate(dateFrom, DATE_TYPE.DATE)}" ${isDisabled ? 'disabled' : ''}>
                     &mdash;
                     <label class="visually-hidden" for="event-end-time-1">To</label>
-                    <input class="event__input  event__input--time" id="event-end-time-1" type="text" name="event-end-time" value="${formatDate(dateTo, DATE_TYPE.DATE)}">
+                    <input class="event__input  event__input--time" id="event-end-time-1" type="text" name="event-end-time" value="${formatDate(dateTo, DATE_TYPE.DATE)}" ${isDisabled ? 'disabled' : ''}>
                   </div>
 
                   <div class="event__field-group  event__field-group--price">
@@ -53,12 +57,12 @@ const editFormTemplate = (event, offersList, destinations) => {
                       <span class="visually-hidden">Price</span>
                       &euro;
                     </label>
-                    <input class="event__input  event__input--price" id="event-price-1" type="number" name="event-price" value="${price}">
+                    <input class="event__input  event__input--price" id="event-price-1" type="number" name="event-price" value="${price}" ${isDisabled ? 'disabled' : ''}>
                   </div>
 
-                  <button class="event__save-btn  btn  btn--blue" type="submit">Save</button>
-                  <button class="event__reset-btn" type="button">Delete</button>
-                  <button class="event__rollup-btn" type="button">
+                  <button class="event__save-btn  btn  btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'Saving...' : 'Save'}</button>
+                  <button class="event__reset-btn" type="button" ${isDisabled ? 'disabled' : ''}>${isDeleting ? 'Deleting...' : 'Delete'}</button>
+                  <button class="event__rollup-btn" type="button" ${isDisabled ? 'disabled' : ''}>
                     <span class="visually-hidden">Open event</span>
                   </button>
                 </header>
@@ -67,7 +71,7 @@ const editFormTemplate = (event, offersList, destinations) => {
                     <h3 class="event__section-title  event__section-title--offers">Offers</h3>
                     <div class="event__available-offers">
                         ${eventTypeOffers.offers.map((offer) => (`<div class="event__offer-selector">
-                                <input class="event__offer-checkbox  visually-hidden" value="${offer.id}" id="event-offer-${offer.id}" type="checkbox" name="event-offer" ${offers.includes(offer.id) ? 'checked' : ''}>
+                                <input class="event__offer-checkbox  visually-hidden" value="${offer.id}" id="event-offer-${offer.id}" type="checkbox" name="event-offer" ${offers.includes(offer.id) ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
                                 <label class="event__offer-label" for="event-offer-${offer.id}">
                                   <span class="event__offer-title">${offer.title}</span>
                                   &plus;&euro;&nbsp;
@@ -97,6 +101,7 @@ class EditForm extends AbstractStatefulView {
   #onReset = null;
   #onDelete = null;
   #originalState = null;
+  #state = STATE.DEFAULT;
 
   constructor({event, offers, destinations, onSubmit, onReset, onDelete}) {
     super();
@@ -111,7 +116,23 @@ class EditForm extends AbstractStatefulView {
   }
 
   get template() {
-    return editFormTemplate(this._state, this.#offers, this.#destinations);
+    return editFormTemplate(this._state, this.#offers, this.#destinations, this.#state);
+  }
+
+  setSaving() {
+    this.#state = STATE.SAVING;
+    this.updateElement({});
+  }
+
+  setDeleting() {
+    this.#state = STATE.DELETING;
+    this.updateElement({});
+  }
+
+  setAborting() {
+    this.#state = STATE.DEFAULT;
+    this.updateElement({});
+    this.shake();
   }
 
   _restoreHandlers() {
@@ -132,8 +153,7 @@ class EditForm extends AbstractStatefulView {
       {
         enableTime: true,
         dateFormat: 'd/m/y H:i',
-        // eslint-disable-next-line camelcase
-        time_24hr: true,
+        'time_24hr': true,
         defaultDate: this._state.dateFrom,
         onChange: this.#dateFromChangeHandler,
       }
@@ -143,8 +163,7 @@ class EditForm extends AbstractStatefulView {
       {
         enableTime: true,
         dateFormat: 'd/m/y H:i',
-        // eslint-disable-next-line camelcase
-        time_24hr: true,
+        'time_24hr': true,
         defaultDate: this._state.dateTo,
         onChange: this.#dateToChangeHandler,
       }
@@ -165,9 +184,9 @@ class EditForm extends AbstractStatefulView {
     this.updateElement({dateTo: selectedDate});
   };
 
-  #submitHandler = (e) => {
+  #submitHandler = async (e) => {
     e.preventDefault();
-    this.#onSubmit(this._state);
+    await this.#onSubmit(this._state);
   };
 
   #resetHandler = (e) => {
@@ -176,9 +195,9 @@ class EditForm extends AbstractStatefulView {
     this.#onReset();
   };
 
-  #deleteHandler = (e) => {
+  #deleteHandler = async (e) => {
     e.preventDefault();
-    this.#onDelete(this._state);
+    await this.#onDelete(this._state);
   };
 
   #typeChangeHandler = (e) => {
