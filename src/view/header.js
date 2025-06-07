@@ -1,6 +1,6 @@
 import AbstractView from '../framework/view/abstract-view';
 import {formatDate} from '../utils/date';
-import {DATE_TYPE} from '../const-values';
+import {DateType} from '../const-values';
 
 function createHeaderTemplate({price, destinations, dateStart, dateEnd}) {
   return (
@@ -19,11 +19,13 @@ function createHeaderTemplate({price, destinations, dateStart, dateEnd}) {
 class Header extends AbstractView {
   #events = null;
   #destinations = null;
+  #offers = null;
 
-  constructor({events, destinations}) {
+  constructor({events, destinations, offers = []}) {
     super();
     this.#events = events;
     this.#destinations = destinations;
+    this.#offers = offers;
   }
 
   get template() {
@@ -38,7 +40,20 @@ class Header extends AbstractView {
   }
 
   #calculatePrice() {
-    return this.#events.reduce((total, event) => total + event.price, 0);
+    return this.#events.reduce((total, event) => {
+      let eventTotal = event.price;
+
+      if (this.#offers && this.#offers.length > 0) {
+        const eventTypeOffers = this.#offers.find((offer) => offer.type === event.type);
+        if (eventTypeOffers && event.offers.length > 0) {
+          const selectedOffers = eventTypeOffers.offers.filter((offer) => event.offers.includes(offer.id));
+          const offersPrice = selectedOffers.reduce((offersSum, offer) => offersSum + offer.price, 0);
+          eventTotal += offersPrice;
+        }
+      }
+
+      return total + eventTotal;
+    }, 0);
   }
 
   #getDestinations() {
@@ -60,7 +75,7 @@ class Header extends AbstractView {
     }
     const dates = this.#events.map((event) => new Date(event.dateFrom).getTime());
     const minTime = Math.min(...dates);
-    return formatDate(new Date(minTime), DATE_TYPE.MONTH);
+    return formatDate(new Date(minTime), DateType.DAY_MONTH);
   }
 
   #calculateEndDate() {
@@ -69,7 +84,7 @@ class Header extends AbstractView {
     }
     const dates = this.#events.map((event) => new Date(event.dateTo).getTime());
     const maxTime = Math.max(...dates);
-    return formatDate(new Date(maxTime), DATE_TYPE.MONTH);
+    return formatDate(new Date(maxTime), DateType.DAY_MONTH);
   }
 }
 

@@ -6,7 +6,7 @@ import Sort from '../view/sort';
 import {filterByTime} from '../utils/date';
 import EventPresenter from './event-presenter';
 import {render, remove, RenderPosition} from '../framework/render';
-import {FILTER_TYPES, UPDATE_TYPE, USER_ACTION} from '../const-values';
+import {FilterTypes, UpdateType, UserAction} from '../const-values';
 import UiBlocker from '../framework/ui-blocker/ui-blocker';
 
 const TIME_LIMIT = {
@@ -16,33 +16,50 @@ const TIME_LIMIT = {
 
 class MainPresenter {
   #eventListComponent = null;
+  #emptyEventListComponent = null;
   #loadingComponent = new LoadingView();
   #errorComponent = new ErrorView();
   #eventPresenters = [];
   #sortComponent = null;
-  #currentSortType = 'sort-price';
+  #currentSortType = 'sort-day';
   #eventsContainer = null;
   #eventModel = null;
   #filterModel = null;
+  #newEventButton = null;
   #newEventPresenter = null;
   #uiBlocker = new UiBlocker({
     lowerLimit: TIME_LIMIT.LOWER_LIMIT,
     upperLimit: TIME_LIMIT.UPPER_LIMIT,
   });
 
-  constructor(eventsContainer, eventModel, filterModel) {
+  constructor(eventsContainer, eventModel, filterModel, newEventButton) {
     this.#eventsContainer = eventsContainer;
     this.#eventModel = eventModel;
     this.#filterModel = filterModel;
+    this.#newEventButton = newEventButton;
 
     this.#eventModel.addObserver(this.#handleModelEvent);
     this.#filterModel.addObserver((eventType) => {
       if (eventType === 'filterChanged') {
-        this.#currentSortType = 'sort-price';
+        this.#currentSortType = 'sort-day';
         this.#clearBoard();
         this.init();
       }
     });
+  }
+
+  get events() {
+    const allEvents = this.#eventModel.events;
+    const currentFilter = this.#filterModel.getFilter();
+    return filterByTime[currentFilter](allEvents);
+  }
+
+  get offers() {
+    return [...this.#eventModel.offers];
+  }
+
+  get destinations() {
+    return [...this.#eventModel.destinations];
   }
 
   init() {
@@ -56,29 +73,70 @@ class MainPresenter {
       return;
     }
 
-    const allEvents = this.#eventModel.events;
-    const currentFilter = this.#filterModel.getFilter();
-    this.events = filterByTime[currentFilter](allEvents);
-    this.offers = [...this.#eventModel.offers];
-    this.destinations = [...this.#eventModel.destinations];
     this.#eventPresenters = [];
+    const events = this.events;
 
-    if (this.events.length === 0) {
-      this.#eventListComponent = new EmptyEventList({filterType: currentFilter});
+    if (events.length === 0) {
+      this.#emptyEventListComponent = new EmptyEventList({filterType: this.#filterModel.getFilter()});
+      this.#eventListComponent = this.#emptyEventListComponent;
       render(this.#eventListComponent, this.#eventsContainer);
       return;
     } else {
       this.#eventListComponent = new EventList();
     }
 
-    this.#sortComponent = new Sort({onSortTypeChange: this.#handleSortTypeChange});
+    this.#sortComponent = new Sort({
+      currentSortType: this.#currentSortType,
+      onSortTypeChange: this.#handleSortTypeChange
+    });
     render(this.#sortComponent, this.#eventsContainer);
     render(this.#eventListComponent, this.#eventsContainer);
 
-    const sortedEvents = this.#getSortedEvents(this.events, this.#currentSortType);
+    const sortedEvents = this.#getSortedEvents(events, this.#currentSortType);
     for (const event of sortedEvents) {
       this.#renderItem(event);
     }
+  }
+
+  createEvent() {
+    this.#handleViewChange();
+    this.#filterModel.setFilter(FilterTypes.EVERYTHING);
+    this.#currentSortType = 'sort-day';
+    if (this.events.length === 0 && this.#emptyEventListComponent) {
+      remove(this.#emptyEventListComponent);
+      this.#eventListComponent = new EventList();
+      this.#sortComponent = new Sort({
+        currentSortType: this.#currentSortType,
+        onSortTypeChange: this.#handleSortTypeChange
+      });
+      render(this.#sortComponent, this.#eventsContainer);
+      render(this.#eventListComponent, this.#eventsContainer);
+    } else if (!this.#eventListComponent || this.#eventListComponent === this.#emptyEventListComponent) {
+      this.#clearBoard();
+      this.init();
+    }
+
+    this.#newEventButton.disabled = true;
+
+    const newEvent = {
+      id: String(Date.now()),
+      type: 'flight',
+      offers: [],
+      price: 0,
+      isFavorite: false
+    };
+    const eventPresenter = new EventPresenter({
+      container: this.#eventListComponent.element,
+      event: newEvent,
+      offers: this.offers,
+      destinations: this.destinations,
+      onDataChange: this.#handleViewAction,
+      onViewChange: this.#handleViewChange,
+      isNewEvent: true,
+      placement: RenderPosition.AFTERBEGIN
+    });
+    eventPresenter.init();
+    this.#newEventPresenter = eventPresenter;
   }
 
   #getSortedEvents(events, sortType) {
@@ -106,52 +164,24 @@ class MainPresenter {
 
   #handleModelEvent = (eventType) => {
     switch (eventType) {
-      case UPDATE_TYPE.LOADING:
+      case UpdateType.LOADING:
         this.#clearBoard();
         this.#renderLoading();
         break;
-      case UPDATE_TYPE.LOADED:
+      case UpdateType.LOADED:
         remove(this.#loadingComponent);
         this.init();
         break;
-      case UPDATE_TYPE.ERROR:
+      case UpdateType.ERROR:
         remove(this.#loadingComponent);
         this.#renderError();
         break;
-      case UPDATE_TYPE.UPDATE:
+      case UpdateType.UPDATE:
         this.#clearBoard();
         this.init();
         break;
     }
   };
-
-  createEvent() {
-    if (this.#newEventPresenter) {
-      return;
-    }
-
-    this.#handleViewChange();
-    this.#filterModel.setFilter(FILTER_TYPES.EVERYTHING);
-    const newEvent = {
-      id: String(Date.now()),
-      type: 'flight',
-      offers: [],
-      price: 0,
-      isFavorite: false
-    };
-    const eventPresenter = new EventPresenter({
-      container: this.#eventListComponent.element,
-      event: newEvent,
-      offers: this.offers,
-      destinations: this.destinations,
-      onDataChange: this.#handleViewAction,
-      onViewChange: this.#handleViewChange,
-      isNewEvent: true,
-      placement: RenderPosition.AFTERBEGIN
-    });
-    eventPresenter.init();
-    this.#newEventPresenter = eventPresenter;
-  }
 
   #handleSortTypeChange = (sortType) => {
     if (this.#currentSortType === sortType) {
@@ -178,15 +208,42 @@ class MainPresenter {
       this.#sortComponent = null;
     }
     this.#clearEventList();
-    remove(this.#eventListComponent);
+    if (this.#eventListComponent && this.#eventListComponent !== this.#emptyEventListComponent) {
+      remove(this.#eventListComponent);
+    } else if (this.#eventListComponent === this.#emptyEventListComponent) {
+      remove(this.#emptyEventListComponent);
+    }
+    this.#eventListComponent = null;
     remove(this.#loadingComponent);
     remove(this.#errorComponent);
   };
 
   #handleViewChange = () => {
     this.#eventPresenters.forEach((presenter) => presenter.resetView());
+
+    if (this.#newEventPresenter && this.events.length === 0) {
+      this.#newEventPresenter?.destroy();
+      this.#newEventPresenter = null;
+      this.#newEventButton.disabled = false;
+
+      if (this.#sortComponent) {
+        remove(this.#sortComponent);
+        this.#sortComponent = null;
+      }
+      if (this.#eventListComponent && this.#eventListComponent !== this.#emptyEventListComponent) {
+        remove(this.#eventListComponent);
+      }
+
+      if (this.#emptyEventListComponent) {
+        this.#eventListComponent = this.#emptyEventListComponent;
+        render(this.#eventListComponent, this.#eventsContainer);
+      }
+      return;
+    }
+
     this.#newEventPresenter?.destroy();
     this.#newEventPresenter = null;
+    this.#newEventButton.disabled = false;
   };
 
   #renderItem(point) {
@@ -210,27 +267,29 @@ class MainPresenter {
 
     try {
       switch (actionType) {
-        case USER_ACTION.UPDATE:
+        case UserAction.UPDATE:
           eventPresenter?.setSaving();
           await this.#eventModel.updateEvent(update);
           break;
-        case USER_ACTION.DELETE:
+        case UserAction.DELETE:
           eventPresenter?.setDeleting();
           await this.#eventModel.removeEvent(update);
           break;
-        case USER_ACTION.ADD:
+        case UserAction.ADD:
           this.#newEventPresenter?.setSaving();
           await this.#eventModel.createEvent(update);
           this.#newEventPresenter?.destroy();
           this.#newEventPresenter = null;
+          this.#newEventButton.disabled = false;
           break;
       }
       success = true;
     } catch (err) {
-      if (actionType === USER_ACTION.UPDATE || actionType === USER_ACTION.DELETE) {
+      if (actionType === UserAction.UPDATE || actionType === UserAction.DELETE) {
         eventPresenter?.setAborting();
-      } else if (actionType === USER_ACTION.ADD) {
+      } else if (actionType === UserAction.ADD) {
         this.#newEventPresenter?.setAborting();
+        this.#newEventButton.disabled = false;
       }
     } finally {
       this.#uiBlocker.unblock();

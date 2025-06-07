@@ -1,7 +1,7 @@
 import AbstractView from '../framework/view/abstract-view';
 import {filterByTime} from '../utils/date';
 
-const filterTemplate = (filter, isChecked, isDisabled) => {
+const createFilterItemTemplate = (filter, isChecked, isDisabled) => {
   const {type} = filter;
   return (
     `<div class="trip-filters__filter">
@@ -17,9 +17,9 @@ const filterTemplate = (filter, isChecked, isDisabled) => {
   );
 };
 
-const filtersTemplate = (filters, currentFilter) => (
+const createFiltersTemplate = (filters, currentFilter) => (
   `<form class="trip-filters" action="#" method="get">
-       ${filters.map((filter) => filterTemplate(filter, filter.type === currentFilter, filter.isDisabled)).join('')}
+       ${filters.map((filter) => createFilterItemTemplate(filter, filter.type === currentFilter, filter.isDisabled)).join('')}
        <button class="visually-hidden" type="submit">Accept filter</button>
   </form>`
 );
@@ -38,7 +38,7 @@ class Filters extends AbstractView {
   }
 
   get template() {
-    return filtersTemplate(this.#createFilters(), this.#currentFilter);
+    return createFiltersTemplate(this.#createFilters(), this.#currentFilter);
   }
 
   #createFilters() {

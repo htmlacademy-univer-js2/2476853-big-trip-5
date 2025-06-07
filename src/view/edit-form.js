@@ -1,18 +1,64 @@
-import {DATE_TYPE, POINT_TYPES, STATE} from '../const-values';
+import {DateType, PointTypes, State} from '../const-values';
 import {formatDate} from '../utils/date';
 import AbstractStatefulView from '../framework/view/abstract-stateful-view';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 
-const editFormTemplate = (event, offersList, destinations, state = STATE.DEFAULT) => {
+const createEditFormTemplate = (event, offersList, destinations, state = State.DEFAULT, isNewEvent) => {
   const {price, dateFrom, dateTo, cityDestination, offers, type} = event;
   const eventTypeOffers = offersList.find((offer) => offer.type === type) || {offers: []};
   const destination = destinations.find((item) => item.id === cityDestination);
   const destinationsToOptions = destinations.map((item) => `<option value="${item.name}"></option>`).join('');
 
-  const isDisabled = state === STATE.DISABLED || state === STATE.SAVING || state === STATE.DELETING;
-  const isSaving = state === STATE.SAVING;
-  const isDeleting = state === STATE.DELETING;
+  const isDisabled = state === State.DISABLED || state === State.SAVING || state === State.DELETING;
+  const isSaving = state === State.SAVING;
+  const isDeleting = state === State.DELETING;
+
+  const saveButtonText = isSaving ? 'Saving...' : 'Save';
+
+  let deleteButtonText;
+  if (isNewEvent) {
+    deleteButtonText = 'Cancel';
+  } else if (isDeleting) {
+    deleteButtonText = 'Deleting...';
+  } else {
+    deleteButtonText = 'Delete';
+  }
+  const hasOffers = eventTypeOffers.offers.length > 0;
+  const hasDescription = !!(destination?.description && destination.description.trim().length > 0);
+  const hasPhotos = Array.isArray(destination?.pictures) && destination.pictures.length > 0;
+
+  const showDetails = hasOffers || hasDescription;
+
+  const offersSection = hasOffers ? `
+    <section class="event__section  event__section--offers">
+      <h3 class="event__section-title  event__section-title--offers">Offers</h3>
+      <div class="event__available-offers">
+        ${eventTypeOffers.offers.map((offer) => (`<div class="event__offer-selector">
+            <input class="event__offer-checkbox  visually-hidden" value="${offer.id}" id="event-offer-${offer.id}" type="checkbox" name="event-offer" ${offers.includes(offer.id) ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
+            <label class="event__offer-label" for="event-offer-${offer.id}">
+              <span class="event__offer-title">${offer.title}</span>
+              &plus;&euro;&nbsp;
+              <span class="event__offer-price">${offer.price}</span>
+            </label>
+          </div>`)).join('')}
+      </div>
+    </section>
+  ` : '';
+
+  const descriptionSection = hasDescription ? `
+    <section class="event__section  event__section--destination">
+      <h3 class="event__section-title  event__section-title--destination">Destination</h3>
+      <p class="event__destination-description">${destination?.description ?? ''}</p>
+      ${hasPhotos ? `
+      <div class="event__photos-container">
+        <div class="event__photos-tape">
+          ${destination.pictures.map((image) => `<img class="event__photo" src="${image.src}" alt="${image.description}">`).join('')}
+        </div>
+      </div>
+      ` : ''}
+    </section>
+  ` : '';
 
   return `<li class="trip-events__item">
               <form class="event event--edit" action="#" method="post">
@@ -27,7 +73,7 @@ const editFormTemplate = (event, offersList, destinations, state = STATE.DEFAULT
                     <div class="event__type-list">
                       <fieldset class="event__type-group">
                         <legend class="visually-hidden">Event type</legend>
-                            ${POINT_TYPES.map((eventType) => (`<div class="event__type-item">
+                            ${PointTypes.map((eventType) => (`<div class="event__type-item">
                                           <input id="event-type-${eventType}-1" class="event__type-input  visually-hidden" type="radio" name="event-type" value="${eventType}" ${eventType === type ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
                                           <label class="event__type-label  event__type-label--${eventType}" for="event-type-${eventType}-1">${eventType}</label></div>`)).join('')}
                       </fieldset>
@@ -46,10 +92,10 @@ const editFormTemplate = (event, offersList, destinations, state = STATE.DEFAULT
 
                   <div class="event__field-group  event__field-group--time">
                     <label class="visually-hidden" for="event-start-time-1">From</label>
-                    <input class="event__input  event__input--time" id="event-start-time-1" type="text" name="event-start-time" value="${formatDate(dateFrom, DATE_TYPE.DATE)}" ${isDisabled ? 'disabled' : ''}>
+                    <input class="event__input  event__input--time" id="event-start-time-1" type="text" name="event-start-time" value="${formatDate(dateFrom, DateType.DATE_TIME)}" ${isDisabled ? 'disabled' : ''}>
                     &mdash;
                     <label class="visually-hidden" for="event-end-time-1">To</label>
-                    <input class="event__input  event__input--time" id="event-end-time-1" type="text" name="event-end-time" value="${formatDate(dateTo, DATE_TYPE.DATE)}" ${isDisabled ? 'disabled' : ''}>
+                    <input class="event__input  event__input--time" id="event-end-time-1" type="text" name="event-end-time" value="${formatDate(dateTo, DateType.DATE_TIME)}" ${isDisabled ? 'disabled' : ''}>
                   </div>
 
                   <div class="event__field-group  event__field-group--price">
@@ -60,36 +106,18 @@ const editFormTemplate = (event, offersList, destinations, state = STATE.DEFAULT
                     <input class="event__input  event__input--price" id="event-price-1" type="number" name="event-price" value="${price}" ${isDisabled ? 'disabled' : ''}>
                   </div>
 
-                  <button class="event__save-btn  btn  btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'Saving...' : 'Save'}</button>
-                  <button class="event__reset-btn" type="button" ${isDisabled ? 'disabled' : ''}>${isDeleting ? 'Deleting...' : 'Delete'}</button>
+                  <button class="event__save-btn  btn  btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${saveButtonText}</button>
+                  <button class="event__reset-btn" type="button" ${isDisabled ? 'disabled' : ''}>${deleteButtonText}</button>
                   <button class="event__rollup-btn" type="button" ${isDisabled ? 'disabled' : ''}>
                     <span class="visually-hidden">Open event</span>
                   </button>
                 </header>
-                <section class="event__details">
-                  <section class="event__section  event__section--offers">
-                    <h3 class="event__section-title  event__section-title--offers">Offers</h3>
-                    <div class="event__available-offers">
-                        ${eventTypeOffers.offers.map((offer) => (`<div class="event__offer-selector">
-                                <input class="event__offer-checkbox  visually-hidden" value="${offer.id}" id="event-offer-${offer.id}" type="checkbox" name="event-offer" ${offers.includes(offer.id) ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
-                                <label class="event__offer-label" for="event-offer-${offer.id}">
-                                  <span class="event__offer-title">${offer.title}</span>
-                                  &plus;&euro;&nbsp;
-                                  <span class="event__offer-price">${offer.price}</span>
-                            </label>
-                          </div>`)).join('')}
-                    </div>
+                ${showDetails ? `
+                  <section class="event__details">
+                    ${offersSection}
+                    ${descriptionSection}
                   </section>
-                  <section class="event__section  event__section--destination">
-                    <h3 class="event__section-title  event__section-title--destination">Destination</h3>
-                    <p class="event__destination-description">${destination?.description ?? ''}</p>
-                    <div class="event__photos-container">
-                      <div class="event__photos-tape">
-                        ${destination?.pictures.map((image) => `<img class="event__photo" src="${image.src}" alt="${image.description}">`).join('') ?? ''}
-                      </div>
-                    </div>
-                  </section>
-                </section>
+                ` : ''}
               </form>
             </li>`;
 };
@@ -101,9 +129,10 @@ class EditForm extends AbstractStatefulView {
   #onReset = null;
   #onDelete = null;
   #originalState = null;
-  #state = STATE.DEFAULT;
+  #isNewEvent = null;
+  #state = State.DEFAULT;
 
-  constructor({event, offers, destinations, onSubmit, onReset, onDelete}) {
+  constructor({event, offers, destinations, onSubmit, onReset, onDelete, isNewEvent}) {
     super();
     this._setState(event);
     this.#originalState = structuredClone(event);
@@ -112,27 +141,36 @@ class EditForm extends AbstractStatefulView {
     this.#onSubmit = onSubmit;
     this.#onReset = onReset;
     this.#onDelete = onDelete;
+    this.#isNewEvent = isNewEvent;
     this._restoreHandlers();
   }
 
   get template() {
-    return editFormTemplate(this._state, this.#offers, this.#destinations, this.#state);
+    return createEditFormTemplate(this._state, this.#offers, this.#destinations, this.#state, this.#isNewEvent);
   }
 
   setSaving() {
-    this.#state = STATE.SAVING;
+    this.#state = State.SAVING;
     this.updateElement({});
   }
 
   setDeleting() {
-    this.#state = STATE.DELETING;
+    this.#state = State.DELETING;
     this.updateElement({});
   }
 
   setAborting() {
-    this.#state = STATE.DEFAULT;
+    this.#state = State.DEFAULT;
     this.updateElement({});
     this.shake();
+  }
+
+  resetToOriginalState() {
+    this.updateElement(this.#originalState);
+  }
+
+  updateOriginalState(newOriginalState) {
+    this.#originalState = structuredClone(newOriginalState);
   }
 
   _restoreHandlers() {
