@@ -1,6 +1,6 @@
 import Observable from '../framework/observable';
 import {convertToClient} from '../utils/adapter';
-import {UPDATE_TYPE} from '../const-values';
+import {UpdateType} from '../const-values';
 
 class EventModel extends Observable {
   #tripApiService = null;
@@ -27,7 +27,7 @@ class EventModel extends Observable {
     try {
       this.#isLoading = true;
       this.#isError = false;
-      this._notify(UPDATE_TYPE.LOADING);
+      this._notify(UpdateType.LOADING);
 
       const [points, destinations, offers] = await Promise.all([
         this.#tripApiService.points,
@@ -40,12 +40,11 @@ class EventModel extends Observable {
       this.#offers = offers.map(convertToClient.offer);
 
       this.#isLoading = false;
-      this._notify(UPDATE_TYPE.LOADED);
+      this._notify(UpdateType.LOADED);
     } catch (error) {
       this.#isLoading = false;
       this.#isError = true;
-      this._notify(UPDATE_TYPE.ERROR);
-      throw error;
+      this._notify(UpdateType.ERROR);
     }
   }
 
@@ -71,7 +70,7 @@ class EventModel extends Observable {
 
   set events(events) {
     this.#events = [...events];
-    this._notify(UPDATE_TYPE.UPDATE, this.#events);
+    this._notify(UpdateType.UPDATE, this.#events);
   }
 
   async updateEvent(updatedEvent) {
@@ -81,7 +80,7 @@ class EventModel extends Observable {
     this.#events = this.#events.map((event) =>
       event.id === adaptedEvent.id ? adaptedEvent : event
     );
-    this._notify(UPDATE_TYPE.UPDATE, this.#events);
+    this._notify(UpdateType.UPDATE, this.#events);
     return adaptedEvent;
   }
 
@@ -90,7 +89,7 @@ class EventModel extends Observable {
     const adaptedEvent = convertToClient.point(response);
 
     this.#events = [adaptedEvent, ...this.#events];
-    this._notify(UPDATE_TYPE.UPDATE, this.#events);
+    this._notify(UpdateType.UPDATE, this.#events);
     return adaptedEvent;
   }
 
@@ -98,7 +97,7 @@ class EventModel extends Observable {
     await this.#tripApiService.deletePoint(event);
 
     this.#events = this.#events.filter((item) => item.id !== event.id);
-    this._notify(UPDATE_TYPE.UPDATE, this.#events);
+    this._notify(UpdateType.UPDATE, this.#events);
   }
 }
 

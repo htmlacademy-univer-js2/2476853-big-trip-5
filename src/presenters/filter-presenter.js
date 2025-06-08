@@ -1,6 +1,6 @@
 import {render, replace} from '../framework/render';
 import FiltersView from '../view/filters';
-import {UPDATE_TYPE} from '../const-values';
+import {UpdateType} from '../const-values';
 
 export default class FilterPresenter {
   #container = null;
@@ -13,13 +13,8 @@ export default class FilterPresenter {
     this.#filterModel = filterModel;
     this.#eventModel = eventModel;
     this.#eventModel.addObserver(this.#handleModelEvent);
+    this.#filterModel.addObserver(this.#handleFilterModelEvent);
   }
-
-  #handleModelEvent = (updateType) => {
-    if (updateType === UPDATE_TYPE.UPDATE || updateType === UPDATE_TYPE.LOADED) {
-      this.init();
-    }
-  };
 
   init() {
     const prevComponent = this.#filtersComponent;
@@ -35,6 +30,16 @@ export default class FilterPresenter {
       replace(filtersComponent, prevComponent);
     }
   }
+
+  #handleModelEvent = (updateType) => {
+    if (updateType === UpdateType.UPDATE || updateType === UpdateType.LOADED) {
+      this.init();
+    }
+  };
+
+  #handleFilterModelEvent = () => {
+    this.init();
+  };
 
   #handleFilterTypeChange = (filterType) => {
     this.#filterModel.setFilter(filterType);

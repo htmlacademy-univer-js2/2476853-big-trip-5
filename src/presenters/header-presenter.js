@@ -1,6 +1,6 @@
-import {render, replace, RenderPosition} from '../framework/render';
+import {render, replace, remove, RenderPosition} from '../framework/render';
 import Header from '../view/header';
-import {UPDATE_TYPE} from '../const-values';
+import {UpdateType} from '../const-values';
 
 class HeaderPresenter {
   #headerContainer = null;
@@ -17,25 +17,40 @@ class HeaderPresenter {
     this.#renderHeader();
   }
 
-  #handleModelEvent = (updateType) => {
-    if (updateType === UPDATE_TYPE.UPDATE || updateType === UPDATE_TYPE.LOADED) {
-      this.#renderHeader(true);
-    }
-  };
-
-  #renderHeader(replaceExisting = false) {
+  #renderHeader() {
     const events = [...this.#eventModel.events];
+
+    if (events.length === 0) {
+      this.#removeHeader();
+      return;
+    }
+
     const headerComponent = new Header({
       events,
-      destinations: events.map((e) => this.#eventModel.destinations.find((d) => d.id === e.cityDestination))
+      destinations: events.map((event) => this.#eventModel.destinations.find((destination) => destination.id === event.cityDestination)),
+      offers: this.#eventModel.offers
     });
-    if (replaceExisting && this.#headerComponent) {
+
+    if (this.#headerComponent) {
       replace(headerComponent, this.#headerComponent);
     } else {
       render(headerComponent, this.#headerContainer, RenderPosition.AFTERBEGIN);
     }
     this.#headerComponent = headerComponent;
   }
+
+  #removeHeader() {
+    if (this.#headerComponent) {
+      remove(this.#headerComponent);
+      this.#headerComponent = null;
+    }
+  }
+
+  #handleModelEvent = (updateType) => {
+    if (updateType === UpdateType.UPDATE || updateType === UpdateType.LOADED) {
+      this.#renderHeader();
+    }
+  };
 }
 
 export default HeaderPresenter;

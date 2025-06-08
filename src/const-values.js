@@ -1,41 +1,44 @@
-const POINT_TYPES = ['taxi', 'bus', 'train', 'ship', 'drive', 'flight', 'check-in', 'sightseeing', 'restaurant'];
+const PointTypes = ['taxi', 'bus', 'train', 'ship', 'drive', 'flight', 'check-in', 'sightseeing', 'restaurant'];
 
-const FILTER_TYPES = {
+const FilterTypes = {
   EVERYTHING: 'everything',
   FUTURE: 'future',
   PRESENT: 'present',
   PAST: 'past',
 };
 
-const DATE_TYPE = {
-  MONTH: 'MMM D',
+const DateType = {
+  DAY_MONTH: 'D MMM',
+  MONTH_DAY: 'MMM D',
   TIME: 'HH:mm',
-  DATE: 'DD/MM/YY HH:mm'
+  DATE_TIME: 'DD/MM/YY HH:mm',
+  DATE: 'YYYY-MM-DD',
+  DATE_TIME_ISO: 'YYYY-MM-DDTHH:mm',
 };
 
-const POINT_STATE = {
+const PointState = {
   DEFAULT: 'DEFAULT',
   EDIT: 'EDIT',
 };
 
-const USER_ACTION = {
+const UserAction = {
   UPDATE: 'UPDATE',
   DELETE: 'DELETE',
   ADD: 'ADD'
 };
 
-const UPDATE_TYPE = {
+const UpdateType = {
   LOADING: 'LOADING',
   LOADED: 'LOADED',
   ERROR: 'ERROR',
   UPDATE: 'UPDATE',
 };
 
-const STATE = {
+const State = {
   SAVING: 'SAVING',
   DELETING: 'DELETING',
   DEFAULT: 'DEFAULT',
   DISABLED: 'DISABLED',
 };
 
-export {POINT_TYPES, FILTER_TYPES, DATE_TYPE, POINT_STATE, USER_ACTION, UPDATE_TYPE, STATE};
+export {PointTypes, FilterTypes, DateType, PointState, UserAction, UpdateType, State};

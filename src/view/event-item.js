@@ -1,24 +1,24 @@
 import {formatDate, getDuration} from '../utils/date';
 import AbstractView from '../framework/view/abstract-view';
-import {DATE_TYPE} from '../const-values';
+import {DateType} from '../const-values';
 
-const eventItemTemplate = (event, offersList, destinations) => {
+const createEventItemTemplate = (event, offersList, destinations) => {
   const {price, dateFrom, dateTo, cityDestination, isFavorite, type} = event;
   const eventTypeOffers = offersList.find((offer) => offer.type === type).offers.filter((offer) => event.offers.includes(offer.id));
   const destination = destinations.find((item) => item.id === cityDestination);
 
   return `<li class="trip-events__item">
               <div class="event">
-                <time class="event__date" datetime="2019-03-18">${formatDate(dateFrom, DATE_TYPE.MONTH)}</time>
+                <time class="event__date" datetime="${formatDate(dateFrom, DateType.DATE)}">${formatDate(dateFrom, DateType.MONTH_DAY)}</time>
                 <div class="event__type">
                   <img class="event__type-icon" width="42" height="42" src="img/icons/${type}.png" alt="Event type icon">
                 </div>
                 <h3 class="event__title">${type} ${destination?.name}</h3>
                 <div class="event__schedule">
                   <p class="event__time">
-                    <time class="event__start-time" datetime="2019-03-18T10:30">${formatDate(dateFrom, DATE_TYPE.TIME)}</time>
+                    <time class="event__start-time" datetime="${formatDate(dateFrom, DateType.DATE_TIME_ISO)}">${formatDate(dateFrom, DateType.TIME)}</time>
                     &mdash;
-                    <time class="event__end-time" datetime="2019-03-18T11:00">${formatDate(dateTo, DATE_TYPE.TIME)}</time>
+                    <time class="event__end-time" datetime="${formatDate(dateTo, DateType.DATE_TIME_ISO)}">${formatDate(dateTo, DateType.TIME)}</time>
                   </p>
                   <p class="event__duration">${getDuration(dateFrom, dateTo)}</p>
                 </div>
@@ -61,8 +61,8 @@ class EventItem extends AbstractView {
     this.#onEditButtonClick = onEditButtonClick;
     this.#onFavoriteClick = onFavoriteClick;
 
-    this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#onEditButtonClick);
-    this.element.querySelector('.event__favorite-btn').addEventListener('click', this.#onFavoriteClick);
+    this.element.querySelector('.event__rollup-btn').addEventListener('click', this.#handleEditButtonClick);
+    this.element.querySelector('.event__favorite-btn').addEventListener('click', this.#handleFavoriteClick);
   }
 
   get event() {
@@ -70,8 +70,18 @@ class EventItem extends AbstractView {
   }
 
   get template() {
-    return eventItemTemplate(this.#event, this.#offers, this.#destinations);
+    return createEventItemTemplate(this.#event, this.#offers, this.#destinations);
   }
+
+  #handleEditButtonClick = (evt) => {
+    evt.preventDefault();
+    this.#onEditButtonClick();
+  };
+
+  #handleFavoriteClick = (evt) => {
+    evt.preventDefault();
+    this.#onFavoriteClick();
+  };
 }
 
 export default EventItem;
