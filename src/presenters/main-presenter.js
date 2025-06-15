@@ -119,7 +119,6 @@ class MainPresenter {
     this.#newEventButton.disabled = true;
 
     const newEvent = {
-      id: String(Date.now()),
       type: 'flight',
       offers: [],
       price: 0,
